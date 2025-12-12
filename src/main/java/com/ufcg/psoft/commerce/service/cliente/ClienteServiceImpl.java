@@ -1,13 +1,12 @@
 package com.ufcg.psoft.commerce.service.cliente;
 
 import com.ufcg.psoft.commerce.exception.ClienteNaoExisteException;
-import com.ufcg.psoft.commerce.exception.CodigoDeAcessoInvalidoException;
 import com.ufcg.psoft.commerce.repository.ClienteRepository;
 import com.ufcg.psoft.commerce.dto.ClientePostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.ClienteResponseDTO;
 import com.ufcg.psoft.commerce.model.Cliente;
+import com.ufcg.psoft.commerce.service.auth.AuthService;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,17 +15,24 @@ import java.util.stream.Collectors;
 @Service
 public class ClienteServiceImpl implements ClienteService {
 
-    @Autowired
-    ClienteRepository clienteRepository;
-    @Autowired
-    ModelMapper modelMapper;
+    private final ClienteRepository clienteRepository;
+    private final ModelMapper modelMapper;
+    private final AuthService authService;
+
+    public ClienteServiceImpl(ClienteRepository clienteRepository,
+                              ModelMapper modelMapper,
+                              AuthService authService) {
+        this.clienteRepository = clienteRepository;
+        this.modelMapper = modelMapper;
+        this.authService = authService;
+    }
 
     @Override
     public ClienteResponseDTO alterar(Long id, String codigoAcesso, ClientePostPutRequestDTO clientePostPutRequestDTO) {
+        authService.autenticarCliente(id, codigoAcesso);
+
         Cliente cliente = clienteRepository.findById(id).orElseThrow(ClienteNaoExisteException::new);
-        if (!cliente.getCodigo().equals(codigoAcesso)) {
-            throw new CodigoDeAcessoInvalidoException();
-        }
+
         modelMapper.map(clientePostPutRequestDTO, cliente);
         clienteRepository.save(cliente);
         return modelMapper.map(cliente, ClienteResponseDTO.class);
@@ -41,10 +47,10 @@ public class ClienteServiceImpl implements ClienteService {
 
     @Override
     public void remover(Long id, String codigoAcesso) {
+        authService.autenticarCliente(id, codigoAcesso);
+
         Cliente cliente = clienteRepository.findById(id).orElseThrow(ClienteNaoExisteException::new);
-        if (!cliente.getCodigo().equals(codigoAcesso)) {
-            throw new CodigoDeAcessoInvalidoException();
-        }
+
         clienteRepository.delete(cliente);
     }
 
