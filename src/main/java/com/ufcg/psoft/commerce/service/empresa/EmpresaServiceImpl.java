@@ -6,6 +6,7 @@ import com.ufcg.psoft.commerce.repository.EmpresaRepository;
 import com.ufcg.psoft.commerce.dto.EmpresaPostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.EmpresaResponseDTO;
 import com.ufcg.psoft.commerce.model.Empresa;
+import com.ufcg.psoft.commerce.service.auth.AuthService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,17 +22,22 @@ public class EmpresaServiceImpl implements EmpresaService {
     @Autowired
     private ModelMapper modelMapper;
 
+    private final AuthService authService;
+
+    public EmpresaServiceImpl(EmpresaRepository empresaRepository,
+                              ModelMapper modelMapper,
+                              AuthService authService) {
+        this.empresaRepository = empresaRepository;
+        this.modelMapper = modelMapper;
+        this.authService = authService;
+    }
+
     @Override
     public EmpresaResponseDTO alterar(String cnpj, String codigoAcesso, EmpresaPostPutRequestDTO empresaPostPutRequestDTO) {
-        // Busca a empresa pelo CNPJ
+
+        authService.autenticarEmpresa(cnpj, codigoAcesso);
         Empresa empresa = empresaRepository.findByCnpj(cnpj).orElseThrow(EmpresaNaoExisteException::new);
 
-        // Verifica se o código de acesso está correto
-        if (!empresa.getCodigoAcesso().equals(codigoAcesso)) {
-            throw new CodigoDeAcessoInvalidoException();
-        }
-
-        // Mapeia os dados do DTO para a entidade e salva
         modelMapper.map(empresaPostPutRequestDTO, empresa);
         empresaRepository.save(empresa);
 
@@ -40,24 +46,18 @@ public class EmpresaServiceImpl implements EmpresaService {
 
     @Override
     public EmpresaResponseDTO criar(EmpresaPostPutRequestDTO empresaPostPutRequestDTO) {
-        // Mapeia o DTO para a entidade
+
         Empresa empresa = modelMapper.map(empresaPostPutRequestDTO, Empresa.class);
         empresaRepository.save(empresa);
-
         return modelMapper.map(empresa, EmpresaResponseDTO.class);
     }
 
     @Override
     public void remover(String cnpj, String codigoAcesso) {
-        // Busca a empresa pelo CNPJ
+
+        authService.autenticarEmpresa(cnpj,codigoAcesso);
         Empresa empresa = empresaRepository.findByCnpj(cnpj).orElseThrow(EmpresaNaoExisteException::new);
 
-        // Verifica se o código de acesso está correto
-        if (!empresa.getCodigoAcesso().equals(codigoAcesso)) {
-            throw new CodigoDeAcessoInvalidoException();
-        }
-
-        // Deleta a empresa
         empresaRepository.delete(empresa);
     }
 
@@ -71,7 +71,7 @@ public class EmpresaServiceImpl implements EmpresaService {
 
     @Override
     public EmpresaResponseDTO recuperar(String cnpj) {
-        // Busca a empresa pelo CNPJ
+
         Empresa empresa = empresaRepository.findByCnpj(cnpj).orElseThrow(EmpresaNaoExisteException::new);
         return new EmpresaResponseDTO(empresa);
     }

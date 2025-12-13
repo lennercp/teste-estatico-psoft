@@ -27,6 +27,10 @@ public class EmpresaPostPutRequestDTO {
     @NotBlank(message = "Nome fantasia é obrigatório")
     private String nomeFantasia;
 
+    @JsonProperty("endereco")
+    @NotBlank(message = "Endereço da empresa obrigatório")
+    private String endereco;
+
     @JsonProperty("codigo_acesso")
     @NotNull(message = "Código de acesso é obrigatório")
     @Pattern(

@@ -23,6 +23,9 @@ public class Empresa {
     @Column(nullable = false)
     private String nomeFantasia;
 
+    @Column(nullable = false)
+    private String endereco;
+
     @Column(nullable = false, length = 6)
     private String codigoAcesso;
 }
