@@ -28,6 +28,10 @@ public class Cliente {
     @Column(nullable = false)
     private String endereco;
 
+    @JsonProperty("plano")
+    @Column(nullable = false)
+    private TipoPlano plano;
+
     @JsonIgnore
     @Column(nullable = false)
     private String codigo;
