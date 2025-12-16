@@ -7,6 +7,7 @@ import com.ufcg.psoft.commerce.dto.ClientePostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.ClienteResponseDTO;
 import com.ufcg.psoft.commerce.exception.CustomErrorType;
 import com.ufcg.psoft.commerce.model.Cliente;
+import com.ufcg.psoft.commerce.model.TipoPlano;
 import com.ufcg.psoft.commerce.repository.ClienteRepository;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,12 +51,14 @@ public class ClienteControllerTests {
                 .nome("Cliente Um da Silva")
                 .endereco("Rua dos Testes, 123")
                 .codigo("123456")
+                .plano(TipoPlano.BASICO)
                 .build()
         );
         clientePostPutRequestDTO = ClientePostPutRequestDTO.builder()
                 .nome(cliente.getNome())
                 .endereco(cliente.getEndereco())
                 .codigo(cliente.getCodigo())
+                .plano(cliente.getPlano())
                 .build();
     }
 
@@ -342,11 +345,13 @@ public class ClienteControllerTests {
                     .nome("Cliente Dois Almeida")
                     .endereco("Av. da Pits A, 100")
                     .codigo("246810")
+                    .plano(TipoPlano.BASICO)
                     .build();
             Cliente cliente2 = Cliente.builder()
                     .nome("Cliente Três Lima")
                     .endereco("Distrito dos Testadores, 200")
                     .codigo("135790")
+                    .plano(TipoPlano.PREMIUM)
                     .build();
             clienteRepository.saveAll(Arrays.asList(cliente1, cliente2));
 

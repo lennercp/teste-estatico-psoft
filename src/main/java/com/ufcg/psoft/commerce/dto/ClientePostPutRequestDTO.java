@@ -1,6 +1,8 @@
 package com.ufcg.psoft.commerce.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.ufcg.psoft.commerce.model.TipoPlano;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -27,4 +29,8 @@ public class ClientePostPutRequestDTO {
     @NotNull(message = "Codigo de acesso obrigatorio")
     @Pattern(regexp = "^\\d{6}$", message = "Codigo de acesso deve ter exatamente 6 digitos numericos")
     private String codigo;
+
+    @JsonProperty("plano")
+    @NotNull
+    private TipoPlano plano;
 }
