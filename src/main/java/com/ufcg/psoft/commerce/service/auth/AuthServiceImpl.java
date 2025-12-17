@@ -59,7 +59,7 @@ public class AuthServiceImpl implements AuthService{
                 .findFirst()
                 .orElseThrow(AdminNaoExisteException::new);
 
-        if (!admin.getSenha().equals(senha) || admin.getId() != id) {
+        if (!admin.getSenha().equals(senha) || 1 != id) {
             throw new AdminSenhaInvalidaException();
         }
     }
