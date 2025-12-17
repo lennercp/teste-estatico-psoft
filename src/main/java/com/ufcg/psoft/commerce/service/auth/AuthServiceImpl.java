@@ -1,9 +1,13 @@
 package com.ufcg.psoft.commerce.service.auth;
 
 import com.ufcg.psoft.commerce.exception.ClienteNaoExisteException;
+import com.ufcg.psoft.commerce.exception.TecnicoNaoExisteException;
 import com.ufcg.psoft.commerce.exception.CodigoDeAcessoInvalidoException;
 import com.ufcg.psoft.commerce.exception.EmpresaNaoExisteException;
 import com.ufcg.psoft.commerce.model.Cliente;
+import com.ufcg.psoft.commerce.model.Tecnico;
+import com.ufcg.psoft.commerce.repository.ClienteRepository;
+import com.ufcg.psoft.commerce.repository.TecnicoRepository;
 import com.ufcg.psoft.commerce.model.Empresa;
 import com.ufcg.psoft.commerce.repository.ClienteRepository;
 import com.ufcg.psoft.commerce.repository.EmpresaRepository;
@@ -13,6 +17,12 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthServiceImpl implements AuthService{
     private final ClienteRepository clienteRepository;
+    private final TecnicoRepository tecnicoRepository;
+
+    public AuthServiceImpl(ClienteRepository c, TecnicoRepository t){
+        this.clienteRepository = c;
+        this.tecnicoRepository = t;
+
     private final EmpresaRepository empresaRepository;
 
     public AuthServiceImpl(ClienteRepository c, EmpresaRepository e){
@@ -30,6 +40,11 @@ public class AuthServiceImpl implements AuthService{
     }
 
     @Override
+    public void autenticarTecnico(Long id, String codigoAcesso) {
+        Tecnico tecnico = tecnicoRepository.findById(id).orElseThrow(TecnicoNaoExisteException::new);
+        if (!tecnico.getCodigoAcesso().equals(codigoAcesso)) { 
+            throw new CodigoDeAcessoInvalidoException();
+        }
     public void autenticarEmpresa(String cnpj, String codigoAcesso) {
             Empresa empresa = empresaRepository.findByCnpj(cnpj).
                     orElseThrow(EmpresaNaoExisteException::new);

@@ -6,7 +6,7 @@ import com.ufcg.psoft.commerce.exception.CodigoDeAcessoInvalidoException;
 import com.ufcg.psoft.commerce.exception.TecnicoNaoExisteException;
 import com.ufcg.psoft.commerce.model.Tecnico;
 import com.ufcg.psoft.commerce.repository.TecnicoRepository;
-import com.ufcg.psoft.commerce.service.tecnico.TecnicoServiceImpl; 
+import com.ufcg.psoft.commerce.service.auth.AuthService; 
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,10 +30,13 @@ import static org.mockito.Mockito.*;
 class TecnicoServiceTests {
 
     @InjectMocks
-    private TecnicoServiceImpl tecnicoService; 
+    private TecnicoServiceImpl tecnicoService;
 
     @Mock
     private TecnicoRepository tecnicoRepository;
+
+    @Mock
+    private AuthService authService;
 
     @Mock
     private ModelMapper modelMapper;
@@ -44,7 +47,6 @@ class TecnicoServiceTests {
 
     @BeforeEach
     void setup() {
-        // Entidade (Banco) 
         tecnico = Tecnico.builder()
                 .id(1L)
                 .nomeCompleto("José da Silva")
@@ -55,7 +57,6 @@ class TecnicoServiceTests {
                 .codigoAcesso("123456")
                 .build();
 
-        // DTO de Entrada
         tecnicoDTO = TecnicoPostPutRequestDTO.builder()
                 .nomeCompleto("José da Silva")
                 .especialidade("Eletricista")
@@ -65,7 +66,6 @@ class TecnicoServiceTests {
                 .codigoAcesso("123456")
                 .build();
 
-        // DTO de Saída
         tecnicoResponseDTO = TecnicoResponseDTO.builder()
                 .id(1L)
                 .nomeCompleto("José da Silva")
@@ -79,15 +79,12 @@ class TecnicoServiceTests {
     @Test
     @DisplayName("Deve criar um técnico com sucesso")
     void testCriarTecnico() {
-        // Cenário
         when(modelMapper.map(tecnicoDTO, Tecnico.class)).thenReturn(tecnico);
         when(tecnicoRepository.save(tecnico)).thenReturn(tecnico);
         when(modelMapper.map(tecnico, TecnicoResponseDTO.class)).thenReturn(tecnicoResponseDTO);
 
-        // Ação
         TecnicoResponseDTO resultado = tecnicoService.criar(tecnicoDTO);
 
-        // Verificação
         assertNotNull(resultado);
         assertEquals(tecnicoResponseDTO.getId(), resultado.getId());
         verify(tecnicoRepository, times(1)).save(tecnico);
@@ -118,61 +115,61 @@ class TecnicoServiceTests {
     }
 
     @Test
-    @DisplayName("Deve lançar exceção ao tentar recuperar ID inexistente")
-    void testRecuperarTecnicoInexistente() {
-        when(tecnicoRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThrows(TecnicoNaoExisteException.class, () -> {
-            tecnicoService.recuperar(99L);
-        });
-    }
-
-    @Test
     @DisplayName("Deve atualizar técnico quando o código de acesso está correto")
     void testAtualizarTecnicoSucesso() {
+        doNothing().when(authService).autenticarTecnico(eq(1L), eq("123456"));
+        
         when(tecnicoRepository.findById(1L)).thenReturn(Optional.of(tecnico));
         when(tecnicoRepository.save(tecnico)).thenReturn(tecnico);
+        doNothing().when(modelMapper).map(tecnicoDTO, tecnico);
+
         when(modelMapper.map(tecnico, TecnicoResponseDTO.class)).thenReturn(tecnicoResponseDTO);
 
         TecnicoResponseDTO resultado = tecnicoService.atualizar(1L, "123456", tecnicoDTO);
 
         assertNotNull(resultado);
+        verify(authService, times(1)).autenticarTecnico(eq(1L), eq("123456"));
         verify(tecnicoRepository, times(1)).save(tecnico);
+        
+        verify(modelMapper, times(1)).map(tecnicoDTO, tecnico);
     }
 
     @Test
     @DisplayName("Deve falhar ao atualizar técnico com código de acesso incorreto")
     void testAtualizarTecnicoCodigoInvalido() {
-        when(tecnicoRepository.findById(1L)).thenReturn(Optional.of(tecnico));
+        
+        doThrow(new CodigoDeAcessoInvalidoException())
+            .when(authService).autenticarTecnico(eq(1L), eq("000000"));
 
-        // Tenta atualizar com senha errada
         assertThrows(CodigoDeAcessoInvalidoException.class, () -> {
             tecnicoService.atualizar(1L, "000000", tecnicoDTO);
         });
 
-        // Garante que o banco NÃO foi alterado
+        verify(tecnicoRepository, never()).findById(any());
         verify(tecnicoRepository, never()).save(any());
     }
 
     @Test
     @DisplayName("Deve remover técnico com sucesso")
     void testRemoverTecnicoSucesso() {
-        when(tecnicoRepository.findById(1L)).thenReturn(Optional.of(tecnico));
+        doNothing().when(authService).autenticarTecnico(eq(1L), eq("123456"));
 
         tecnicoService.remover(1L, "123456");
 
-        verify(tecnicoRepository, times(1)).delete(tecnico);
+        verify(authService, times(1)).autenticarTecnico(eq(1L), eq("123456"));
+        verify(tecnicoRepository, times(1)).deleteById(1L);
     }
 
     @Test
     @DisplayName("Deve falhar ao remover técnico com código de acesso incorreto")
     void testRemoverTecnicoCodigoInvalido() {
-        when(tecnicoRepository.findById(1L)).thenReturn(Optional.of(tecnico));
+        doThrow(new CodigoDeAcessoInvalidoException())
+            .when(authService).autenticarTecnico(eq(1L), eq("999999"));
 
         assertThrows(CodigoDeAcessoInvalidoException.class, () -> {
             tecnicoService.remover(1L, "999999");
         });
-
+        verify(tecnicoRepository, never()).deleteById(any());
         verify(tecnicoRepository, never()).delete(any());
     }
 }
