@@ -68,7 +68,6 @@ public class TecnicoServiceImpl implements TecnicoService {
 
     @Override
     public void adicionarAprovacao(Long id, Empresa empresa) {
-        //TODO: colocar autenticação
         Tecnico tecnico = tecnicoRepository.findById(id)
                 .orElseThrow(TecnicoNaoExisteException::new);
 
@@ -80,7 +79,6 @@ public class TecnicoServiceImpl implements TecnicoService {
 
     @Override
     public void adicionarRejeicao(Long id, Empresa empresa) {
-        //TODO: colocar autenticação
         Tecnico tecnico = tecnicoRepository.findById(id)
                 .orElseThrow(TecnicoNaoExisteException::new);
 
