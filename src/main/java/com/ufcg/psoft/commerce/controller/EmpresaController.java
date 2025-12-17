@@ -71,4 +71,26 @@ public class EmpresaController {
                 .status(HttpStatus.NO_CONTENT)
                 .body("");
     }
+
+    @PutMapping("/{cnpj}/aprovar/{tecnicoId}")
+    public ResponseEntity<?> aprovarTecnico(
+            @PathVariable String cnpj,
+            @PathVariable Long tecnicoId,
+            @RequestParam String codigo) {
+
+        empresaService.aprovarTecnico(cnpj, codigo, tecnicoId);
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    @PutMapping("/{cnpj}/rejeitar/{tecnicoId}")
+    public ResponseEntity<?> rejeitarTecnico(
+            @PathVariable String cnpj,
+            @PathVariable Long tecnicoId,
+            @RequestParam String codigo) {
+
+        empresaService.rejeitarTecnico(cnpj, codigo, tecnicoId);
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
 }

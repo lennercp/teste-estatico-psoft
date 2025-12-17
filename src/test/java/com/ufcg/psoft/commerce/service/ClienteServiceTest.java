@@ -1,13 +1,12 @@
-package com.ufcg.psoft.commerce.service.cliente;
+package com.ufcg.psoft.commerce.service;
 
-import com.ufcg.psoft.commerce.dto.ClientePatchRequestDTO;
 import com.ufcg.psoft.commerce.dto.ClienteResponseDTO;
 import com.ufcg.psoft.commerce.model.Cliente;
 import com.ufcg.psoft.commerce.model.HistoricoAssinatura;
 import com.ufcg.psoft.commerce.model.TipoPlano;
 import com.ufcg.psoft.commerce.repository.ClienteRepository;
 import com.ufcg.psoft.commerce.repository.HistoricoAssinaturaRepository;
-import com.ufcg.psoft.commerce.service.auth.AuthService;
+import com.ufcg.psoft.commerce.service.cliente.ClienteServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -32,8 +31,6 @@ class ClienteServiceTest {
     @Mock
     private HistoricoAssinaturaRepository historicoAssinaturaRepository;
 
-    @Mock
-    private AuthService authService;
 
     @Mock
     private ModelMapper modelMapper;

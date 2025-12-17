@@ -1,13 +1,13 @@
-package com.ufcg.psoft.commerce.service.tecnico;
+package com.ufcg.psoft.commerce.service;
 
 import com.ufcg.psoft.commerce.dto.TecnicoPostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.TecnicoResponseDTO;
 import com.ufcg.psoft.commerce.exception.CodigoDeAcessoInvalidoException;
-import com.ufcg.psoft.commerce.exception.TecnicoNaoExisteException;
 import com.ufcg.psoft.commerce.model.Tecnico;
 import com.ufcg.psoft.commerce.repository.TecnicoRepository;
-import com.ufcg.psoft.commerce.service.auth.AuthService; 
+import com.ufcg.psoft.commerce.service.auth.AuthService;
 
+import com.ufcg.psoft.commerce.service.tecnico.TecnicoServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
