@@ -9,6 +9,7 @@ import com.ufcg.psoft.commerce.exception.CustomErrorType;
 import com.ufcg.psoft.commerce.model.Cliente;
 import com.ufcg.psoft.commerce.model.TipoPlano;
 import com.ufcg.psoft.commerce.repository.ClienteRepository;
+import com.ufcg.psoft.commerce.repository.HistoricoAssinaturaRepository;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -37,6 +38,9 @@ public class ClienteControllerTests {
     @Autowired
     ClienteRepository clienteRepository;
 
+    @Autowired
+    HistoricoAssinaturaRepository historicoAssinaturaRepository;
+
     ObjectMapper objectMapper = new ObjectMapper();
 
     Cliente cliente;
@@ -51,19 +55,21 @@ public class ClienteControllerTests {
                 .nome("Cliente Um da Silva")
                 .endereco("Rua dos Testes, 123")
                 .codigo("123456")
-                .plano(TipoPlano.BASICO)
+                .planoAtual(TipoPlano.BASICO)
+                .planoAgendado(TipoPlano.BASICO)
                 .build()
         );
         clientePostPutRequestDTO = ClientePostPutRequestDTO.builder()
                 .nome(cliente.getNome())
                 .endereco(cliente.getEndereco())
                 .codigo(cliente.getCodigo())
-                .plano(cliente.getPlano())
+                .planoAgendado(cliente.getPlanoAtual())
                 .build();
     }
 
     @AfterEach
     void tearDown() {
+        historicoAssinaturaRepository.deleteAll();
         clienteRepository.deleteAll();
     }
 
@@ -81,7 +87,7 @@ public class ClienteControllerTests {
                     .andDo(print())
                     .andReturn().getResponse().getContentAsString();
 
-            Cliente resultado = objectMapper.readValue(responseJsonString, Cliente.ClienteBuilder.class).build();
+            ClienteResponseDTO resultado = objectMapper.readValue(responseJsonString, ClienteResponseDTO.class);
 
             // Assert
             assertEquals("Cliente Um da Silva", resultado.getNome());
@@ -102,7 +108,7 @@ public class ClienteControllerTests {
                     .andDo(print())
                     .andReturn().getResponse().getContentAsString();
 
-            Cliente resultado = objectMapper.readValue(responseJsonString, Cliente.ClienteBuilder.class).build();
+            ClienteResponseDTO resultado = objectMapper.readValue(responseJsonString, ClienteResponseDTO.class);
 
             // Assert
             assertEquals("Cliente Um Alterado", resultado.getNome());
@@ -345,13 +351,15 @@ public class ClienteControllerTests {
                     .nome("Cliente Dois Almeida")
                     .endereco("Av. da Pits A, 100")
                     .codigo("246810")
-                    .plano(TipoPlano.BASICO)
+                    .planoAtual(TipoPlano.BASICO)
+                    .planoAgendado(TipoPlano.BASICO)
                     .build();
             Cliente cliente2 = Cliente.builder()
                     .nome("Cliente Três Lima")
                     .endereco("Distrito dos Testadores, 200")
                     .codigo("135790")
-                    .plano(TipoPlano.PREMIUM)
+                    .planoAtual(TipoPlano.PREMIUM)
+                    .planoAgendado(TipoPlano.PREMIUM)
                     .build();
             clienteRepository.saveAll(Arrays.asList(cliente1, cliente2));
 
@@ -363,7 +371,7 @@ public class ClienteControllerTests {
                     .andDo(print())
                     .andReturn().getResponse().getContentAsString();
 
-            List<Cliente> resultado = objectMapper.readValue(responseJsonString, new TypeReference<>() {
+            List<ClienteResponseDTO> resultado = objectMapper.readValue(responseJsonString, new TypeReference<>() {
             });
 
             // Assert
@@ -431,7 +439,7 @@ public class ClienteControllerTests {
                     .andDo(print())
                     .andReturn().getResponse().getContentAsString();
 
-            Cliente resultado = objectMapper.readValue(responseJsonString, Cliente.ClienteBuilder.class).build();
+            ClienteResponseDTO resultado = objectMapper.readValue(responseJsonString, ClienteResponseDTO.class);
 
             // Assert
             assertAll(
@@ -456,11 +464,11 @@ public class ClienteControllerTests {
                     .andDo(print())
                     .andReturn().getResponse().getContentAsString();
 
-            Cliente resultado = objectMapper.readValue(responseJsonString, Cliente.ClienteBuilder.class).build();
+            ClienteResponseDTO resultado = objectMapper.readValue(responseJsonString, ClienteResponseDTO.class);
 
             // Assert
             assertAll(
-                    () -> assertEquals(resultado.getId().longValue(), clienteId),
+                    () -> assertEquals(clienteId, resultado.getId().longValue()),
                     () -> assertEquals(clientePostPutRequestDTO.getNome(), resultado.getNome())
             );
         }
@@ -571,6 +579,84 @@ public class ClienteControllerTests {
             assertAll(
                     () -> assertEquals("Codigo de acesso invalido!", resultado.getMessage())
             );
+        }
+    }
+
+    @Nested
+    @DisplayName("Conjunto de casos de verificação de alterar parcial")
+    class ClienteVerificacaoAlterarParcial {
+
+        @Test
+        @DisplayName("Quando alteramos o nome do cliente com dados válidos")
+        void quandoAlteramosNomeDoClienteValido() throws Exception {
+            // Arrange
+            String nomeAlterado = "Nome Parcial Alterado";
+            String requestBody = objectMapper.writeValueAsString(ClientePostPutRequestDTO.builder()
+                    .nome(nomeAlterado)
+                    .build());
+
+            // Act
+            String responseJsonString = driver.perform(patch(URI_CLIENTES + "/" + cliente.getId())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .param("codigo", cliente.getCodigo())
+                            .content(requestBody))
+                    .andExpect(status().isOk())
+                    .andDo(print())
+                    .andReturn().getResponse().getContentAsString();
+
+            ClienteResponseDTO resultado = objectMapper.readValue(responseJsonString, ClienteResponseDTO.class);
+
+            // Assert
+            assertEquals(nomeAlterado, resultado.getNome());
+            assertEquals(cliente.getEndereco(), resultado.getEndereco());
+        }
+
+        @Test
+        @DisplayName("Quando alteramos o endereço do cliente com dados válidos")
+        void quandoAlteramosEnderecoDoClienteValido() throws Exception {
+            // Arrange
+            String enderecoAlterado = "Endereco Parcial Alterado";
+            String requestBody = objectMapper.writeValueAsString(ClientePostPutRequestDTO.builder()
+                    .endereco(enderecoAlterado)
+                    .build());
+
+            // Act
+            String responseJsonString = driver.perform(patch(URI_CLIENTES + "/" + cliente.getId())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .param("codigo", cliente.getCodigo())
+                            .content(requestBody))
+                    .andExpect(status().isOk())
+                    .andDo(print())
+                    .andReturn().getResponse().getContentAsString();
+
+            ClienteResponseDTO resultado = objectMapper.readValue(responseJsonString, ClienteResponseDTO.class);
+
+            // Assert
+            assertEquals(enderecoAlterado, resultado.getEndereco());
+            assertEquals(cliente.getNome(), resultado.getNome());
+        }
+
+        @Test
+        @DisplayName("Quando alteramos o plano do cliente com dados válidos")
+        void quandoAlteramosPlanoDoClienteValido() throws Exception {
+            // Arrange
+            TipoPlano novoPlano = TipoPlano.PREMIUM;
+            
+            String requestBody = "{\"plano\": \"PREMIUM\"}";
+
+            // Act
+            String responseJsonString = driver.perform(patch(URI_CLIENTES + "/" + cliente.getId())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .param("codigo", cliente.getCodigo())
+                            .content(requestBody))
+                    .andExpect(status().isOk())
+                    .andDo(print())
+                    .andReturn().getResponse().getContentAsString();
+
+            ClienteResponseDTO resultado = objectMapper.readValue(responseJsonString, ClienteResponseDTO.class);
+
+            // Assert
+            assertEquals(TipoPlano.BASICO, resultado.getPlanoAtual());
         }
     }
 }

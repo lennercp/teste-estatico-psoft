@@ -6,6 +6,7 @@ import com.ufcg.psoft.commerce.dto.ClienteResponseDTO;
 import com.ufcg.psoft.commerce.model.Cliente;
 import com.ufcg.psoft.commerce.model.TipoPlano;
 import com.ufcg.psoft.commerce.repository.ClienteRepository;
+import com.ufcg.psoft.commerce.repository.HistoricoAssinaturaRepository;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -34,6 +35,9 @@ public class ClienteTestAula {
     @Autowired
     ClienteRepository clienteRepository;
 
+    @Autowired
+    HistoricoAssinaturaRepository historicoAssinaturaRepository;
+
     ObjectMapper objectMapper = new ObjectMapper();
 
     List<ClienteResponseDTO> clientesDTO = new ArrayList<>();
@@ -46,7 +50,8 @@ public class ClienteTestAula {
                 .nome("Cliente")
                 .endereco("Rua 123")
                 .codigo("123456")
-                        .plano(TipoPlano.PREMIUM)
+                .planoAtual(TipoPlano.PREMIUM)
+                .planoAgendado(TipoPlano.PREMIUM)
                 .build()
         );
 
@@ -54,7 +59,8 @@ public class ClienteTestAula {
                 .nome("Clienta")
                 .endereco("Rua 234")
                 .codigo("123456")
-                        .plano(TipoPlano.BASICO)
+                        .planoAtual(TipoPlano.BASICO)
+                        .planoAgendado(TipoPlano.BASICO)
                 .build()
         );
 
@@ -62,7 +68,7 @@ public class ClienteTestAula {
                 .nome(cliente1.getNome())
                 .endereco(cliente1.getEndereco())
                 .id(cliente1.getId())
-                .plano(cliente1.getPlano())
+                .planoAtual(cliente1.getPlanoAtual())
                 .build();
 
         clientesDTO.add(r1);
@@ -70,6 +76,7 @@ public class ClienteTestAula {
 
     @AfterEach
     void tearDown() {
+        historicoAssinaturaRepository.deleteAll();
         clienteRepository.deleteAll();
     }
 
