@@ -32,7 +32,7 @@ public class EmpresaController {
                 .body(empresaService.recuperar(cnpj));
     }
 
-    @GetMapping("")
+    @GetMapping
     public ResponseEntity<?> listarEmpresas() {
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -40,35 +40,45 @@ public class EmpresaController {
     }
 
 
-    @PostMapping()
+    @PostMapping
     public ResponseEntity<?> criarEmpresa(
+            @RequestParam String senhaAdmin,
             @RequestBody @Valid EmpresaPostPutRequestDTO empresaPostPutRequestDTO) {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(empresaService.criar(empresaPostPutRequestDTO));
+                .body(empresaService.criar(senhaAdmin, empresaPostPutRequestDTO));
     }
 
     @PutMapping("/{cnpj}")
     public ResponseEntity<?> atualizarEmpresa(
             @PathVariable String cnpj,
-            @RequestParam String codigo,
+            @RequestParam String codigoAcesso,
+            @RequestParam String senhaAdmin,
             @RequestBody @Valid EmpresaPostPutRequestDTO empresaPostPutRequestDTO) {
 
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(empresaService.alterar(cnpj, codigo, empresaPostPutRequestDTO));
+                .body(
+                        empresaService.alterar(
+                                cnpj,
+                                codigoAcesso,
+                                senhaAdmin,
+                                empresaPostPutRequestDTO
+                        )
+                );
     }
 
     @DeleteMapping("/{cnpj}")
     public ResponseEntity<?> excluirEmpresa(
             @PathVariable String cnpj,
-            @RequestParam String codigo) {
+            @RequestParam String codigoAcesso,
+            @RequestParam String senhaAdmin) {
 
-        empresaService.remover(cnpj, codigo);
+        empresaService.remover(cnpj, codigoAcesso, senhaAdmin);
 
         return ResponseEntity
                 .status(HttpStatus.NO_CONTENT)
-                .body("");
+                .build();
     }
 }

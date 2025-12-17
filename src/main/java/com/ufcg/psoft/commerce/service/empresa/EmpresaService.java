@@ -7,14 +7,14 @@ import java.util.List;
 
 public interface EmpresaService {
 
-    EmpresaResponseDTO alterar(String cnpj, String codigoAcesso, EmpresaPostPutRequestDTO empresaPostPutRequestDTO);
+    EmpresaResponseDTO alterar(String cnpj, String codigoAcesso, String senhaAdmin, EmpresaPostPutRequestDTO empresaPostPutRequestDTO);
 
     List<EmpresaResponseDTO> listar();
 
     EmpresaResponseDTO recuperar(String cnpj);
 
-    EmpresaResponseDTO criar(EmpresaPostPutRequestDTO empresaPostPutRequestDTO);
+    EmpresaResponseDTO criar(String senhaAdmin, EmpresaPostPutRequestDTO empresaPostPutRequestDTO);
 
-    void remover(String cnpj, String codigoAcesso);
+    void remover(String cnpj, String codigoAcesso, String senhaAdmin);
 
 }
