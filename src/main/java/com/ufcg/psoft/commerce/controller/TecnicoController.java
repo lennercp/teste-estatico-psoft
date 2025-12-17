@@ -4,7 +4,6 @@ import com.ufcg.psoft.commerce.dto.TecnicoPostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.TecnicoResponseDTO;
 import com.ufcg.psoft.commerce.service.tecnico.TecnicoService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,11 +11,14 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/tecnicos")
+@RequestMapping("/tecnicos")
 public class TecnicoController {
 
-    @Autowired
-    private TecnicoService tecnicoService;
+    private final TecnicoService tecnicoService;
+
+    public TecnicoController(TecnicoService tecnicoService){
+        this.tecnicoService = tecnicoService;
+    }
 
     @PostMapping
     public ResponseEntity<TecnicoResponseDTO> criarTecnico(

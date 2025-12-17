@@ -659,4 +659,47 @@ public class ClienteControllerTests {
             assertEquals(TipoPlano.BASICO, resultado.getPlanoAtual());
         }
     }
+
+    @Nested
+    @DisplayName("Conjunto de casos de verificação de próximo ciclo de cobrança")
+    class ClienteVerificacaoProxCicloCobranca {
+
+        @Test
+        @DisplayName("Quando adiantamos o próximo ciclo de cobrança com dados válidos")
+        void quandoAdiantamosProximoCicloCobrancaValido() throws Exception {
+            // Arrange
+            // nenhuma necessidade além do setup()
+
+            // Act
+            String responseJsonString = driver.perform(patch(URI_CLIENTES + "/" + cliente.getId() + "/proxCiclo"))
+                    .andExpect(status().isOk())
+                    .andDo(print())
+                    .andReturn().getResponse().getContentAsString();
+
+            ClienteResponseDTO resultado = objectMapper.readValue(responseJsonString, ClienteResponseDTO.class);
+
+            // Assert
+            assertEquals(cliente.getId(), resultado.getId());
+        }
+
+        @Test
+        @DisplayName("Quando adiantamos o próximo ciclo de cobrança de cliente inexistente")
+        void quandoAdiantamosProximoCicloCobrancaInexistente() throws Exception {
+            // Arrange
+            // nenhuma necessidade além do setup()
+
+            // Act
+            String responseJsonString = driver.perform(patch(URI_CLIENTES + "/" + 99999L + "/proxCiclo"))
+                    .andExpect(status().isBadRequest())
+                    .andDo(print())
+                    .andReturn().getResponse().getContentAsString();
+
+            CustomErrorType resultado = objectMapper.readValue(responseJsonString, CustomErrorType.class);
+
+            // Assert
+            assertEquals("O cliente consultado nao existe!", resultado.getMessage());
+        }
+    }
+
 }
+

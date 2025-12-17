@@ -68,6 +68,7 @@ public class ClienteServiceImpl implements ClienteService {
             cliente.setPlanoAtual(cliente.getPlanoAgendado());
 
             registraHistoricoAssinatura(cliente);
+            clienteRepository.save(cliente);
         }
 
         return modelMapper.map(cliente, ClienteResponseDTO.class);

@@ -1,12 +1,9 @@
 package com.ufcg.psoft.commerce.controller;
 
 
-import com.ufcg.psoft.commerce.dto.ClientePostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.EmpresaPostPutRequestDTO;
-import com.ufcg.psoft.commerce.service.cliente.ClienteService;
 import com.ufcg.psoft.commerce.service.empresa.EmpresaService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -20,8 +17,11 @@ import org.springframework.web.bind.annotation.*;
 )
 public class EmpresaController {
 
-    @Autowired
-    EmpresaService empresaService;
+    private final EmpresaService empresaService;
+
+    public EmpresaController(EmpresaService empresaService){
+        this.empresaService = empresaService;
+    }
 
     @GetMapping("/{cnpj}")
     public ResponseEntity<?> recuperarEmpresa(

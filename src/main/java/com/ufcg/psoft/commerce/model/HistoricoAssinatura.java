@@ -6,6 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
 
 
 @Entity
@@ -24,6 +27,11 @@ public class HistoricoAssinatura {
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private TipoPlano planoNovo;
+
+    @JsonProperty("dataHora")
+    @Column(nullable = false, updatable = false)
+    @CreationTimestamp
+    private LocalDateTime dataHora;
 
     @JsonProperty("cliente")
     @ManyToOne

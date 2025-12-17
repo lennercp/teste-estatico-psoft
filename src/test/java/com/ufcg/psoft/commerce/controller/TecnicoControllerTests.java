@@ -22,6 +22,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("Testes do Controlador de Técnicos")
 class TecnicoControllerTests {
 
+    final String URI_TECNICOS = "/tecnicos";
+
     @Autowired
     private MockMvc driver;
 
@@ -62,13 +64,12 @@ class TecnicoControllerTests {
         void testCriarTecnicoSucesso() throws Exception {
             String jsonBody = objectMapper.writeValueAsString(tecnicoDTO);
 
-            driver.perform(post("/api/v1/tecnicos")
+            driver.perform(post(URI_TECNICOS)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(jsonBody))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.nomeCompleto").value(tecnicoDTO.getNomeCompleto()))
                     .andExpect(jsonPath("$.id").exists())
-                    // Regra de segurança: Não deve retornar o código de acesso
                     .andExpect(jsonPath("$.codigoAcesso").doesNotExist())
                     .andDo(print());
         }
@@ -79,7 +80,7 @@ class TecnicoControllerTests {
             tecnicoDTO.setCodigoAcesso("123");
             String jsonBody = objectMapper.writeValueAsString(tecnicoDTO);
 
-            driver.perform(post("/api/v1/tecnicos")
+            driver.perform(post(URI_TECNICOS)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(jsonBody))
                     .andExpect(status().isBadRequest())
@@ -104,7 +105,7 @@ class TecnicoControllerTests {
                     .build();
             tecnicoRepository.save(tecnico);
 
-            driver.perform(get("/api/v1/tecnicos"))
+            driver.perform(get(URI_TECNICOS))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].nomeCompleto").value("Maria Souza"))
                     .andExpect(jsonPath("$[0].codigoAcesso").doesNotExist())
@@ -124,7 +125,7 @@ class TecnicoControllerTests {
                     .build();
             Tecnico salvo = tecnicoRepository.save(tecnico);
 
-            driver.perform(get("/api/v1/tecnicos/" + salvo.getId()))
+            driver.perform(get(URI_TECNICOS + "/" +  salvo.getId()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.nomeCompleto").value("João Teste"))
                     .andDo(print());
@@ -152,7 +153,7 @@ class TecnicoControllerTests {
 
             String jsonBody = objectMapper.writeValueAsString(tecnicoDTO);
 
-            driver.perform(put("/api/v1/tecnicos/" + salvo.getId())
+            driver.perform(put(URI_TECNICOS + "/" + salvo.getId())
                             .param("codigoAcesso", "123456")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(jsonBody))
@@ -176,7 +177,7 @@ class TecnicoControllerTests {
 
             String jsonBody = objectMapper.writeValueAsString(tecnicoDTO);
 
-            driver.perform(put("/api/v1/tecnicos/" + salvo.getId())
+            driver.perform(put(URI_TECNICOS + "/" + salvo.getId())
                             .param("codigoAcesso", "000000") 
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(jsonBody))
@@ -202,7 +203,7 @@ class TecnicoControllerTests {
                     .build();
             Tecnico salvo = tecnicoRepository.save(tecnico);
 
-            driver.perform(delete("/api/v1/tecnicos/" + salvo.getId())
+            driver.perform(delete(URI_TECNICOS + "/" + salvo.getId())
                             .param("codigoAcesso", "123456"))
                     .andExpect(status().isNoContent())
                     .andDo(print());
@@ -223,7 +224,7 @@ class TecnicoControllerTests {
                     .build();
             Tecnico salvo = tecnicoRepository.save(tecnico);
 
-            driver.perform(delete("/api/v1/tecnicos/" + salvo.getId())
+            driver.perform(delete(URI_TECNICOS + "/" + salvo.getId())
                             .param("codigoAcesso", "999999"))
                     .andExpect(status().isBadRequest())
                     .andDo(print());
