@@ -1,5 +1,6 @@
 package com.ufcg.psoft.commerce.controller;
 
+import com.ufcg.psoft.commerce.dto.ClientePatchRequestDTO;
 import com.ufcg.psoft.commerce.dto.ClientePostPutRequestDTO;
 import com.ufcg.psoft.commerce.service.cliente.ClienteService;
 import jakarta.validation.Valid;
@@ -68,4 +69,15 @@ public class ClienteController {
                 .status(HttpStatus.NO_CONTENT)
                 .body("");
     }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> alterarParcialCliente(
+            @PathVariable Long id,
+            @RequestParam String codigo,
+            @RequestBody @Valid ClientePatchRequestDTO ClientePatchRequestDTO) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(clienteService.alterarParcial(id, codigo, ClientePatchRequestDTO));
+    }
+
 }

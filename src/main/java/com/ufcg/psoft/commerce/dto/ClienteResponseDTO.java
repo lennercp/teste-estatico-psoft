@@ -34,12 +34,12 @@ public class ClienteResponseDTO {
 
     @JsonProperty("plano")
     @NotNull
-    private TipoPlano plano;
+    private TipoPlano planoAtual;
 
     public ClienteResponseDTO(Cliente cliente) {
         this.id = cliente.getId();
         this.nome = cliente.getNome();
         this.endereco = cliente.getEndereco();
-        this.plano = cliente.getPlano();
+        this.planoAtual = cliente.getPlanoAtual();
     }
 }
