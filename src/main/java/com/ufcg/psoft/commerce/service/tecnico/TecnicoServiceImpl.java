@@ -4,6 +4,7 @@ import com.ufcg.psoft.commerce.dto.TecnicoPostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.TecnicoResponseDTO;
 import com.ufcg.psoft.commerce.exception.CodigoDeAcessoInvalidoException;
 import com.ufcg.psoft.commerce.exception.TecnicoNaoExisteException;
+import com.ufcg.psoft.commerce.model.Empresa;
 import com.ufcg.psoft.commerce.model.Tecnico;
 import com.ufcg.psoft.commerce.repository.TecnicoRepository;
 import org.modelmapper.ModelMapper;
@@ -73,5 +74,29 @@ public class TecnicoServiceImpl implements TecnicoService {
         }
 
         tecnicoRepository.delete(tecnico);
+    }
+
+    @Override
+    public void adicionarAprovacao(Long id, Empresa empresa) {
+        //TODO: colocar autenticação
+        Tecnico tecnico = tecnicoRepository.findById(id)
+                .orElseThrow(TecnicoNaoExisteException::new);
+
+        tecnico.getEmpresasReprovadoras().remove(empresa);
+        tecnico.getEmpresasAprovadoras().add(empresa);
+
+        tecnicoRepository.save(tecnico);
+    }
+
+    @Override
+    public void adicionarRejeicao(Long id, Empresa empresa) {
+        //TODO: colocar autenticação
+        Tecnico tecnico = tecnicoRepository.findById(id)
+                .orElseThrow(TecnicoNaoExisteException::new);
+
+        tecnico.getEmpresasAprovadoras().remove(empresa);
+        tecnico.getEmpresasReprovadoras().add(empresa);
+
+        tecnicoRepository.save(tecnico);
     }
 }

@@ -7,6 +7,7 @@ import com.ufcg.psoft.commerce.dto.EmpresaPostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.EmpresaResponseDTO;
 import com.ufcg.psoft.commerce.model.Empresa;
 import com.ufcg.psoft.commerce.service.auth.AuthService;
+import com.ufcg.psoft.commerce.service.tecnico.TecnicoService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,19 +18,19 @@ import java.util.stream.Collectors;
 @Service
 public class EmpresaServiceImpl implements EmpresaService {
 
-    @Autowired
-    private EmpresaRepository empresaRepository;
-    @Autowired
-    private ModelMapper modelMapper;
-
+    private final EmpresaRepository empresaRepository;
+    private final ModelMapper modelMapper;
     private final AuthService authService;
+    private final TecnicoService tecnicoService;
 
     public EmpresaServiceImpl(EmpresaRepository empresaRepository,
                               ModelMapper modelMapper,
-                              AuthService authService) {
+                              AuthService authService,
+                              TecnicoService tecnicoService) {
         this.empresaRepository = empresaRepository;
         this.modelMapper = modelMapper;
         this.authService = authService;
+        this.tecnicoService = tecnicoService;
     }
 
     @Override
@@ -59,6 +60,22 @@ public class EmpresaServiceImpl implements EmpresaService {
         Empresa empresa = empresaRepository.findByCnpj(cnpj).orElseThrow(EmpresaNaoExisteException::new);
 
         empresaRepository.delete(empresa);
+    }
+
+    @Override
+    public void aprovarTecnico(String cnpj, String codigoAcesso, Long tecnicoId) {
+        authService.autenticarEmpresa(cnpj, codigoAcesso);
+
+        Empresa empresa = empresaRepository.findByCnpj(cnpj).orElseThrow(EmpresaNaoExisteException::new);
+        tecnicoService.adicionarAprovacao(tecnicoId, empresa);
+    }
+
+    @Override
+    public void rejeitarTecnico(String cnpj, String codigoAcesso, Long tecnicoId) {
+        authService.autenticarEmpresa(cnpj, codigoAcesso);
+
+        Empresa empresa = empresaRepository.findByCnpj(cnpj).orElseThrow(EmpresaNaoExisteException::new);
+        tecnicoService.adicionarRejeicao(tecnicoId, empresa);
     }
 
     @Override

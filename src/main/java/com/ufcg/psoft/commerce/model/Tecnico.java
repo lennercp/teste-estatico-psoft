@@ -7,6 +7,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
 @Data
 @Builder
@@ -43,4 +46,21 @@ public class Tecnico {
     @JsonProperty("codigoAcesso")
     @Column(nullable = false)
     private String codigoAcesso;
+
+    @ManyToMany
+    @JoinTable(
+            name = "tecnico_empresas_aprovadoras",
+            joinColumns = @JoinColumn(name = "tecnico_id"),
+            inverseJoinColumns = @JoinColumn(name = "empresa_id")
+    )
+    private Set<Empresa> empresasAprovadoras = new HashSet<>();
+
+    @ManyToMany
+    @JoinTable(
+            name = "tecnico_empresas_reprovadoras",
+            joinColumns = @JoinColumn(name = "tecnico_id"),
+            inverseJoinColumns = @JoinColumn(name = "empresa_id")
+    )
+    private Set<Empresa> empresasReprovadoras = new HashSet<>();
+
 }

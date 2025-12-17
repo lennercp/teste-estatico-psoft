@@ -17,4 +17,8 @@ public interface EmpresaService {
 
     void remover(String cnpj, String codigoAcesso);
 
+    void aprovarTecnico(String cnpj, String codigoAcesso, Long tecnicoId);
+
+    void rejeitarTecnico(String cnpj, String codigoAcesso, Long tecnicoId);
+
 }
