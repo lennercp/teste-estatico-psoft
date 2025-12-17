@@ -3,10 +3,14 @@ package com.ufcg.psoft.commerce.service.auth;
 import com.ufcg.psoft.commerce.exception.ClienteNaoExisteException;
 import com.ufcg.psoft.commerce.exception.TecnicoNaoExisteException;
 import com.ufcg.psoft.commerce.exception.CodigoDeAcessoInvalidoException;
+import com.ufcg.psoft.commerce.exception.EmpresaNaoExisteException;
 import com.ufcg.psoft.commerce.model.Cliente;
 import com.ufcg.psoft.commerce.model.Tecnico;
 import com.ufcg.psoft.commerce.repository.ClienteRepository;
 import com.ufcg.psoft.commerce.repository.TecnicoRepository;
+import com.ufcg.psoft.commerce.model.Empresa;
+import com.ufcg.psoft.commerce.repository.ClienteRepository;
+import com.ufcg.psoft.commerce.repository.EmpresaRepository;
 import org.springframework.stereotype.Service;
 
 
@@ -19,6 +23,12 @@ public class AuthServiceImpl implements AuthService{
         this.clienteRepository = c;
         this.tecnicoRepository = t;
 
+    private final EmpresaRepository empresaRepository;
+
+    public AuthServiceImpl(ClienteRepository c, EmpresaRepository e){
+
+        this.clienteRepository = c;
+        this.empresaRepository = e;
     }
 
     @Override
@@ -35,5 +45,12 @@ public class AuthServiceImpl implements AuthService{
         if (!tecnico.getCodigoAcesso().equals(codigoAcesso)) { 
             throw new CodigoDeAcessoInvalidoException();
         }
+    public void autenticarEmpresa(String cnpj, String codigoAcesso) {
+            Empresa empresa = empresaRepository.findByCnpj(cnpj).
+                    orElseThrow(EmpresaNaoExisteException::new);
+            if (!empresa.getCodigoAcesso().equals(codigoAcesso)) {
+                    throw  new CodigoDeAcessoInvalidoException();
+            }
+
     }
 }
