@@ -52,14 +52,14 @@ public class AuthServiceImpl implements AuthService{
     }
 
     @Override
-    public void autenticarAdmin(String senha) {
+    public void autenticarAdmin(Long id, String senha) {
 
         Admin admin = adminRepository.findAll()
                 .stream()
                 .findFirst()
                 .orElseThrow(AdminNaoExisteException::new);
 
-        if (!admin.getSenha().equals(senha)) {
+        if (!admin.getSenha().equals(senha) || admin.getId() != id) {
             throw new AdminSenhaInvalidaException();
         }
     }

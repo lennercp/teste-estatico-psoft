@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 public class AdminResponseDTO {
 
     @JsonProperty("id")
-    private String id;
+    private Long id;
 
     @JsonProperty("nome")
     private String nome;

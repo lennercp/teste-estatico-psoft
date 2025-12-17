@@ -34,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("Testes do controlador de Empresas")
 public class EmpresaControllerTest {
 
+    static final Long ADMIN_ID = 1L;
     final String SENHA_ADMIN_VALIDA = "admin123";
     final String SENHA_ADMIN_INVALIDA = "adminErrada";
 
@@ -62,7 +63,7 @@ public class EmpresaControllerTest {
 
         adminRepository.save(
                 Admin.builder()
-                        .id(UUID.randomUUID().toString())
+                        .id(ADMIN_ID)
                         .nome("admin")
                         .senha(SENHA_ADMIN_VALIDA)
                         .build()
@@ -100,6 +101,7 @@ public class EmpresaControllerTest {
 
             String responseJsonString = driver.perform(put(URI_EMPRESAS + "/" + empresa.getCnpj())
                             .contentType(MediaType.APPLICATION_JSON)
+                            .param("id", String.valueOf(ADMIN_ID))
                             .param("codigoAcesso", empresa.getCodigoAcesso())
                             .param("senhaAdmin", SENHA_ADMIN_VALIDA)
                             .content(objectMapper.writeValueAsString(empresaPostPutRequestDTO)))
@@ -119,6 +121,7 @@ public class EmpresaControllerTest {
 
             driver.perform(put(URI_EMPRESAS + "/" + empresa.getCnpj())
                             .contentType(MediaType.APPLICATION_JSON)
+                            .param("id", String.valueOf(ADMIN_ID))
                             .param("codigoAcesso", "000000")
                             .param("senhaAdmin", SENHA_ADMIN_VALIDA)
                             .content(objectMapper.writeValueAsString(empresaPostPutRequestDTO)))
@@ -131,6 +134,7 @@ public class EmpresaControllerTest {
 
             driver.perform(put(URI_EMPRESAS + "/" + empresa.getCnpj())
                             .contentType(MediaType.APPLICATION_JSON)
+                            .param("id", String.valueOf(ADMIN_ID))
                             .param("codigoAcesso", empresa.getCodigoAcesso())
                             .param("senhaAdmin", SENHA_ADMIN_INVALIDA)
                             .content(objectMapper.writeValueAsString(empresaPostPutRequestDTO)))
@@ -143,6 +147,7 @@ public class EmpresaControllerTest {
 
             driver.perform(put(URI_EMPRESAS + "/" + empresa.getCnpj())
                             .contentType(MediaType.APPLICATION_JSON)
+                            .param("id", String.valueOf(ADMIN_ID))
                             .param("codigo", "000000")
                             .param("senhaAdmin", SENHA_ADMIN_INVALIDA)
                             .content(objectMapper.writeValueAsString(empresaPostPutRequestDTO)))
@@ -178,6 +183,7 @@ public class EmpresaControllerTest {
 
             String responseJsonString = driver.perform(put(URI_EMPRESAS + "/" + empresa.getCnpj())
                             .contentType(MediaType.APPLICATION_JSON)
+                            .param("id", String.valueOf(ADMIN_ID))
                             .param("codigoAcesso", empresa.getCodigoAcesso())
                             .param("senhaAdmin", SENHA_ADMIN_VALIDA)
                             .content(objectMapper.writeValueAsString(empresaPostPutRequestDTO)))
@@ -248,6 +254,7 @@ public class EmpresaControllerTest {
             empresaRepository.deleteAll();
 
             driver.perform(post(URI_EMPRESAS)
+                            .param("id", String.valueOf(ADMIN_ID))
                             .param("senhaAdmin", SENHA_ADMIN_VALIDA)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(empresaPostPutRequestDTO)))
@@ -259,6 +266,7 @@ public class EmpresaControllerTest {
         void quandoCriamosEmpresaAdminInvalido() throws Exception {
 
             driver.perform(post(URI_EMPRESAS)
+                            .param("id", String.valueOf(ADMIN_ID))
                             .param("senhaAdmin", SENHA_ADMIN_INVALIDA)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(empresaPostPutRequestDTO)))
@@ -271,6 +279,7 @@ public class EmpresaControllerTest {
         void quandoExcluimosEmpresaAdminECodigoValidos() throws Exception {
 
             driver.perform(delete(URI_EMPRESAS + "/" + empresa.getCnpj())
+                            .param("id", String.valueOf(ADMIN_ID))
                             .param("codigoAcesso", empresa.getCodigoAcesso())
                             .param("senhaAdmin", SENHA_ADMIN_VALIDA))
                     .andExpect(status().isNoContent());
@@ -284,6 +293,7 @@ public class EmpresaControllerTest {
         void quandoExcluimosEmpresaAdminValidoCodigoInvalido() throws Exception {
 
             driver.perform(delete(URI_EMPRESAS + "/" + empresa.getCnpj())
+                            .param("id", String.valueOf(ADMIN_ID))
                             .param("codigoAcesso", "000000")
                             .param("senhaAdmin", SENHA_ADMIN_VALIDA))
                     .andExpect(status().isBadRequest());
@@ -294,6 +304,7 @@ public class EmpresaControllerTest {
         void quandoExcluimosEmpresaAdminInvalido() throws Exception {
 
             driver.perform(delete(URI_EMPRESAS + "/" + empresa.getCnpj())
+                            .param("id", String.valueOf(ADMIN_ID))
                             .param("codigoAcesso", empresa.getCodigoAcesso())
                             .param("senhaAdmin", SENHA_ADMIN_INVALIDA))
                     .andExpect(status().isBadRequest());

@@ -14,10 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 
 @RestController
-@RequestMapping(
-        value = "/empresas",
-        produces = MediaType.APPLICATION_JSON_VALUE
-)
+@RequestMapping("/empresas")
 public class EmpresaController {
 
     @Autowired
@@ -34,26 +31,35 @@ public class EmpresaController {
 
     @GetMapping
     public ResponseEntity<?> listarEmpresas() {
+
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(empresaService.listar());
     }
 
-
     @PostMapping
     public ResponseEntity<?> criarEmpresa(
+            @RequestParam Long id,
             @RequestParam String senhaAdmin,
             @RequestBody @Valid EmpresaPostPutRequestDTO empresaPostPutRequestDTO) {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(empresaService.criar(senhaAdmin, empresaPostPutRequestDTO));
+                .body(
+                        empresaService.criar(
+                                id,
+                                senhaAdmin,
+                                empresaPostPutRequestDTO
+                        )
+                );
     }
 
     @PutMapping("/{cnpj}")
     public ResponseEntity<?> atualizarEmpresa(
+            @RequestParam Long id,
             @PathVariable String cnpj,
             @RequestParam String codigoAcesso,
+
             @RequestParam String senhaAdmin,
             @RequestBody @Valid EmpresaPostPutRequestDTO empresaPostPutRequestDTO) {
 
@@ -61,6 +67,7 @@ public class EmpresaController {
                 .status(HttpStatus.OK)
                 .body(
                         empresaService.alterar(
+                                id,
                                 cnpj,
                                 codigoAcesso,
                                 senhaAdmin,
@@ -71,11 +78,18 @@ public class EmpresaController {
 
     @DeleteMapping("/{cnpj}")
     public ResponseEntity<?> excluirEmpresa(
+            @RequestParam Long id,
             @PathVariable String cnpj,
             @RequestParam String codigoAcesso,
+
             @RequestParam String senhaAdmin) {
 
-        empresaService.remover(cnpj, codigoAcesso, senhaAdmin);
+        empresaService.remover(
+                id,
+                cnpj,
+                codigoAcesso,
+                senhaAdmin
+        );
 
         return ResponseEntity
                 .status(HttpStatus.NO_CONTENT)

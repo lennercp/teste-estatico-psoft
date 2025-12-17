@@ -34,10 +34,10 @@ public class EmpresaServiceImpl implements EmpresaService {
     }
 
     @Override
-    public EmpresaResponseDTO criar(String senhaAdmin, EmpresaPostPutRequestDTO empresaPostPutRequestDTO) {
+    public EmpresaResponseDTO criar(Long id, String senhaAdmin, EmpresaPostPutRequestDTO empresaPostPutRequestDTO) {
 
 
-        authService.autenticarAdmin(senhaAdmin);
+        authService.autenticarAdmin(id, senhaAdmin);
 
         Empresa empresa = modelMapper.map(empresaPostPutRequestDTO, Empresa.class);
         empresaRepository.save(empresa);
@@ -46,10 +46,10 @@ public class EmpresaServiceImpl implements EmpresaService {
     }
 
     @Override
-    public EmpresaResponseDTO alterar(String cnpj, String codigoAcesso, String senhaAdmin, EmpresaPostPutRequestDTO empresaPostPutRequestDTO) {
+    public EmpresaResponseDTO alterar(Long id, String cnpj, String codigoAcesso, String senhaAdmin, EmpresaPostPutRequestDTO empresaPostPutRequestDTO) {
 
 
-        authService.autenticarAdmin(senhaAdmin);
+        authService.autenticarAdmin(id, senhaAdmin);
 
 
         authService.autenticarEmpresa(cnpj, codigoAcesso);
@@ -64,11 +64,11 @@ public class EmpresaServiceImpl implements EmpresaService {
     }
 
     @Override
-    public void remover(String cnpj,
+    public void remover(Long id, String cnpj,
                         String codigoAcesso,
                         String senhaAdmin) {
 
-        authService.autenticarAdmin(senhaAdmin);
+        authService.autenticarAdmin(id, senhaAdmin);
 
         authService.autenticarEmpresa(cnpj, codigoAcesso);
 

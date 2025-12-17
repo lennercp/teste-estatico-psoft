@@ -15,9 +15,8 @@ import lombok.NoArgsConstructor;
 public class Admin {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(nullable = false, unique = true)
-    private String id;
+    private Long id = 1L;
 
     @Column(nullable = false)
     private String nome;

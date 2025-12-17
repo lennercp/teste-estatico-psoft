@@ -45,6 +45,7 @@ public class EmpresaServiceImplTest {
 
     static final String CNPJ = "12345678910111";
     static final String CODIGO = "654321";
+    static final Long ADMIN_ID = 1L;
     static final String SENHA_ADMIN = "senhaAdminValida";
 
     Empresa empresa;
@@ -70,14 +71,14 @@ public class EmpresaServiceImplTest {
         responseDTO = new EmpresaResponseDTO(empresa);
     }
 
-   
+
 
     @Test
     @DisplayName("Quando criamos empresa válida")
     void quandoCriamosEmpresaValida() {
 
         doNothing().when(authService)
-                .autenticarAdmin(SENHA_ADMIN);
+                .autenticarAdmin(ADMIN_ID, SENHA_ADMIN);
 
         when(modelMapper.map(requestDTO, Empresa.class))
                 .thenReturn(empresa);
@@ -86,11 +87,11 @@ public class EmpresaServiceImplTest {
                 .thenReturn(responseDTO);
 
         EmpresaResponseDTO resultado =
-                empresaService.criar(SENHA_ADMIN, requestDTO);
+                empresaService.criar(ADMIN_ID, SENHA_ADMIN, requestDTO);
 
         assertNotNull(resultado);
 
-        verify(authService).autenticarAdmin(SENHA_ADMIN);
+        verify(authService).autenticarAdmin(ADMIN_ID, SENHA_ADMIN);
         verify(empresaRepository).save(empresa);
     }
 
@@ -100,10 +101,10 @@ public class EmpresaServiceImplTest {
 
         doThrow(AdminSenhaInvalidaException.class)
                 .when(authService)
-                .autenticarAdmin(SENHA_ADMIN);
+                .autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
 
         assertThrows(AdminSenhaInvalidaException.class,
-                () -> empresaService.criar(SENHA_ADMIN, requestDTO));
+                () -> empresaService.criar(ADMIN_ID,SENHA_ADMIN, requestDTO));
 
         verify(empresaRepository, never()).save(any());
     }
@@ -115,7 +116,7 @@ public class EmpresaServiceImplTest {
     void quandoAlteramosEmpresaValida() {
 
         doNothing().when(authService)
-                .autenticarAdmin(SENHA_ADMIN);
+                .autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
 
         doNothing().when(authService)
                 .autenticarEmpresa(CNPJ, CODIGO);
@@ -137,11 +138,11 @@ public class EmpresaServiceImplTest {
                 .thenReturn(responseDTO);
 
         EmpresaResponseDTO resultado =
-                empresaService.alterar(CNPJ, CODIGO, SENHA_ADMIN, requestDTO);
+                empresaService.alterar(ADMIN_ID,CNPJ, CODIGO, SENHA_ADMIN, requestDTO);
 
         assertNotNull(resultado);
 
-        verify(authService).autenticarAdmin(SENHA_ADMIN);
+        verify(authService).autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
         verify(authService).autenticarEmpresa(CNPJ, CODIGO);
         verify(empresaRepository).save(empresa);
     }
@@ -152,10 +153,10 @@ public class EmpresaServiceImplTest {
 
         doThrow(AdminSenhaInvalidaException.class)
                 .when(authService)
-                .autenticarAdmin(SENHA_ADMIN);
+                .autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
 
         assertThrows(AdminSenhaInvalidaException.class,
-                () -> empresaService.alterar(CNPJ, CODIGO, SENHA_ADMIN, requestDTO));
+                () -> empresaService.alterar(ADMIN_ID,CNPJ, CODIGO, SENHA_ADMIN, requestDTO));
 
         verify(empresaRepository, never()).save(any());
     }
@@ -166,7 +167,7 @@ public class EmpresaServiceImplTest {
     void quandoRemovemosEmpresaValida() {
 
         doNothing().when(authService)
-                .autenticarAdmin(SENHA_ADMIN);
+                .autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
 
         doNothing().when(authService)
                 .autenticarEmpresa(CNPJ, CODIGO);
@@ -174,9 +175,9 @@ public class EmpresaServiceImplTest {
         when(empresaRepository.findByCnpj(CNPJ))
                 .thenReturn(Optional.of(empresa));
 
-        empresaService.remover(CNPJ, CODIGO, SENHA_ADMIN);
+        empresaService.remover(ADMIN_ID,CNPJ, CODIGO, SENHA_ADMIN);
 
-        verify(authService).autenticarAdmin(SENHA_ADMIN);
+        verify(authService).autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
         verify(authService).autenticarEmpresa(CNPJ, CODIGO);
         verify(empresaRepository).delete(empresa);
     }
@@ -187,10 +188,10 @@ public class EmpresaServiceImplTest {
 
         doThrow(AdminSenhaInvalidaException.class)
                 .when(authService)
-                .autenticarAdmin(SENHA_ADMIN);
+                .autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
 
         assertThrows(AdminSenhaInvalidaException.class,
-                () -> empresaService.remover(CNPJ, CODIGO, SENHA_ADMIN));
+                () -> empresaService.remover(ADMIN_ID,CNPJ, CODIGO, SENHA_ADMIN));
 
         verify(empresaRepository, never()).delete(any());
     }
@@ -227,7 +228,7 @@ public class EmpresaServiceImplTest {
     void quandoAlteramosEmpresaInexistenteComCredenciaisValidas() {
 
         doNothing().when(authService)
-                .autenticarAdmin(SENHA_ADMIN);
+                .autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
 
         doNothing().when(authService)
                 .autenticarEmpresa(CNPJ, CODIGO);
@@ -236,7 +237,7 @@ public class EmpresaServiceImplTest {
                 .thenReturn(Optional.empty());
 
         assertThrows(EmpresaNaoExisteException.class,
-                () -> empresaService.alterar(CNPJ, CODIGO, SENHA_ADMIN, requestDTO));
+                () -> empresaService.alterar(ADMIN_ID,CNPJ, CODIGO, SENHA_ADMIN, requestDTO));
 
         verify(empresaRepository, never()).save(any());
     }
@@ -246,7 +247,7 @@ public class EmpresaServiceImplTest {
     void quandoRemovemosEmpresaInexistenteComCredenciaisValidas() {
 
         doNothing().when(authService)
-                .autenticarAdmin(SENHA_ADMIN);
+                .autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
 
         doNothing().when(authService)
                 .autenticarEmpresa(CNPJ, CODIGO);
@@ -255,7 +256,7 @@ public class EmpresaServiceImplTest {
                 .thenReturn(Optional.empty());
 
         assertThrows(EmpresaNaoExisteException.class,
-                () -> empresaService.remover(CNPJ, CODIGO, SENHA_ADMIN));
+                () -> empresaService.remover(ADMIN_ID,CNPJ, CODIGO, SENHA_ADMIN));
 
         verify(empresaRepository, never()).delete(any());
     }
@@ -277,10 +278,10 @@ public class EmpresaServiceImplTest {
 
         doThrow(AdminSenhaInvalidaException.class)
                 .when(authService)
-                .autenticarAdmin(SENHA_ADMIN);
+                .autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
 
         assertThrows(AdminSenhaInvalidaException.class,
-                () -> empresaService.alterar(CNPJ, CODIGO, SENHA_ADMIN, requestDTO));
+                () -> empresaService.alterar(ADMIN_ID,CNPJ, CODIGO, SENHA_ADMIN, requestDTO));
 
         verify(empresaRepository, never()).findByCnpj(any());
     }
