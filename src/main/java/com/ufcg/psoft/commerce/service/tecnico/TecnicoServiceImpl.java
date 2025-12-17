@@ -8,7 +8,6 @@ import com.ufcg.psoft.commerce.model.Tecnico;
 import com.ufcg.psoft.commerce.repository.TecnicoRepository;
 import com.ufcg.psoft.commerce.service.auth.AuthService;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,14 +16,17 @@ import java.util.stream.Collectors;
 @Service
 public class TecnicoServiceImpl implements TecnicoService {
 
-    @Autowired
-    private TecnicoRepository tecnicoRepository;
+    private final TecnicoRepository tecnicoRepository;
+    private final AuthService authService;
+    private final ModelMapper modelMapper;
 
-    @Autowired
-    private AuthService authService;
-
-    @Autowired
-    private ModelMapper modelMapper;
+    public TecnicoServiceImpl(TecnicoRepository tecnicoRepository,
+                              AuthService authService,
+                              ModelMapper modelMapper){
+        this.tecnicoRepository = tecnicoRepository;
+        this.authService = authService;
+        this.modelMapper = modelMapper;
+    }
 
     @Override
     public TecnicoResponseDTO criar(TecnicoPostPutRequestDTO tecnicoDTO) {

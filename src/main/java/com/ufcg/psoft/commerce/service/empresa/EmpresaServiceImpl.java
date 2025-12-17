@@ -1,7 +1,6 @@
 package com.ufcg.psoft.commerce.service.empresa;
 
 import com.ufcg.psoft.commerce.exception.EmpresaNaoExisteException;
-import com.ufcg.psoft.commerce.exception.CodigoDeAcessoInvalidoException;
 import com.ufcg.psoft.commerce.repository.EmpresaRepository;
 import com.ufcg.psoft.commerce.dto.EmpresaPostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.EmpresaResponseDTO;
@@ -9,7 +8,6 @@ import com.ufcg.psoft.commerce.model.Empresa;
 import com.ufcg.psoft.commerce.service.auth.AuthService;
 import com.ufcg.psoft.commerce.service.tecnico.TecnicoService;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
