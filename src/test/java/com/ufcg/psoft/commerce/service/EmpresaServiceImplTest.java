@@ -4,6 +4,7 @@ package com.ufcg.psoft.commerce.service;
 import com.ufcg.psoft.commerce.dto.EmpresaPostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.EmpresaResponseDTO;
 import com.ufcg.psoft.commerce.exception.CustomErrorType;
+import com.ufcg.psoft.commerce.exception.CodigoDeAcessoInvalidoException;
 import com.ufcg.psoft.commerce.exception.EmpresaNaoExisteException;
 import com.ufcg.psoft.commerce.model.Empresa;
 import com.ufcg.psoft.commerce.repository.EmpresaRepository;
@@ -204,6 +205,40 @@ public class EmpresaServiceImplTest {
 
         assertThrows(EmpresaNaoExisteException.class,
                 () -> empresaService.recuperar(CNPJ));
+    }
+
+    @Test
+    @DisplayName("Quando tentamos alterar empresa com código de acesso inválido")
+    void quandoAlteramosEmpresaComCodigoInvalido() {
+
+
+        doThrow(new CodigoDeAcessoInvalidoException())
+                .when(authService)
+                .autenticarEmpresa(CNPJ, CODIGO);
+
+        assertThrows(CodigoDeAcessoInvalidoException.class,
+                () -> empresaService.alterar(CNPJ, CODIGO, requestDTO));
+
+        verify(empresaRepository, never()).findByCnpj(any());
+        verify(empresaRepository, never()).save(any());
+    }
+
+
+    @Test
+    @DisplayName("Quando tentamos remover empresa com código de acesso inválido")
+    void quandoRemovemosEmpresaComCodigoDeAcessoInvalido() {
+
+        doThrow(CodigoDeAcessoInvalidoException.class)
+                .when(authService)
+                .autenticarEmpresa(CNPJ, CODIGO);
+
+
+        assertThrows(CodigoDeAcessoInvalidoException.class,
+                () -> empresaService.remover(CNPJ, CODIGO));
+
+
+        verify(empresaRepository, never()).findByCnpj(any());
+        verify(empresaRepository, never()).delete(any());
     }
 
 }
