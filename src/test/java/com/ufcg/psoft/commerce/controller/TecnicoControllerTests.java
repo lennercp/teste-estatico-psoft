@@ -35,19 +35,16 @@ class TecnicoControllerTests {
 
     @BeforeEach
     void setup() {
-        // Limpa o banco antes de cada teste 
         tecnicoRepository.deleteAll();
-        // Configura o ObjectMapper para lidar com datas se necessário
         objectMapper.registerModule(new JavaTimeModule());
 
-        // Cria um DTO padrão para usar nos testes
         tecnicoDTO = TecnicoPostPutRequestDTO.builder()
                 .nomeCompleto("José da Silva")
                 .especialidade("Eletricista")
                 .placaVeiculo("ABC-1234")
                 .tipoVeiculo("Carro")
                 .corVeiculo("Branco")
-                .codigoAcesso("123456") // 6 dígitos válido
+                .codigoAcesso("123456") 
                 .build();
     }
 
@@ -79,13 +76,13 @@ class TecnicoControllerTests {
         @Test
         @DisplayName("Não deve criar técnico com código de acesso inválido (menos de 6 dígitos)")
         void testCriarTecnicoCodigoInvalido() throws Exception {
-            tecnicoDTO.setCodigoAcesso("123"); // Inválido
+            tecnicoDTO.setCodigoAcesso("123");
             String jsonBody = objectMapper.writeValueAsString(tecnicoDTO);
 
             driver.perform(post("/api/v1/tecnicos")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(jsonBody))
-                    .andExpect(status().isBadRequest()) // Espera erro 400
+                    .andExpect(status().isBadRequest())
                     .andDo(print());
         }
     }
@@ -97,7 +94,6 @@ class TecnicoControllerTests {
         @Test
         @DisplayName("Deve listar todos os técnicos sem exibir código de acesso")
         void testListarTecnicos() throws Exception {
-            // Salva um técnico diretamente no banco
             Tecnico tecnico = Tecnico.builder()
                     .nomeCompleto("Maria Souza")
                     .especialidade("Hidráulica")
@@ -111,7 +107,7 @@ class TecnicoControllerTests {
             driver.perform(get("/api/v1/tecnicos"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].nomeCompleto").value("Maria Souza"))
-                    .andExpect(jsonPath("$[0].codigoAcesso").doesNotExist()) // Segurança
+                    .andExpect(jsonPath("$[0].codigoAcesso").doesNotExist())
                     .andDo(print());
         }
 
@@ -142,7 +138,6 @@ class TecnicoControllerTests {
         @Test
         @DisplayName("Deve atualizar técnico quando código de acesso está correto")
         void testAtualizarTecnicoSucesso() throws Exception {
-            // Cria o cenário inicial
             Tecnico tecnico = Tecnico.builder()
                     .nomeCompleto("Antigo Nome")
                     .especialidade("Antiga")
@@ -153,12 +148,10 @@ class TecnicoControllerTests {
                     .build();
             Tecnico salvo = tecnicoRepository.save(tecnico);
 
-            // Modifica o DTO
             tecnicoDTO.setNomeCompleto("Novo Nome");
 
             String jsonBody = objectMapper.writeValueAsString(tecnicoDTO);
 
-            // PUT passando o ID e o codigoAcesso correto como param
             driver.perform(put("/api/v1/tecnicos/" + salvo.getId())
                             .param("codigoAcesso", "123456")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -183,12 +176,11 @@ class TecnicoControllerTests {
 
             String jsonBody = objectMapper.writeValueAsString(tecnicoDTO);
 
-            // PUT com senha errada (000000)
             driver.perform(put("/api/v1/tecnicos/" + salvo.getId())
                             .param("codigoAcesso", "000000") 
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(jsonBody))
-                    .andExpect(status().isBadRequest()) // Ou o status que sua Exception Handler retorna
+                    .andExpect(status().isBadRequest())
                     .andDo(print());
         }
     }
@@ -215,7 +207,6 @@ class TecnicoControllerTests {
                     .andExpect(status().isNoContent())
                     .andDo(print());
 
-            // Verifica se realmente sumiu do banco
             assertTrue(tecnicoRepository.findById(salvo.getId()).isEmpty());
         }
 
@@ -233,11 +224,10 @@ class TecnicoControllerTests {
             Tecnico salvo = tecnicoRepository.save(tecnico);
 
             driver.perform(delete("/api/v1/tecnicos/" + salvo.getId())
-                            .param("codigoAcesso", "999999")) // Senha errada
+                            .param("codigoAcesso", "999999"))
                     .andExpect(status().isBadRequest())
                     .andDo(print());
             
-            // Verifica que NÃO foi apagado
             assertTrue(tecnicoRepository.findById(salvo.getId()).isPresent());
         }
     }
