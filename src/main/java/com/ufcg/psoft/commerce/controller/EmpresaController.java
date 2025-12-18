@@ -1,12 +1,9 @@
 package com.ufcg.psoft.commerce.controller;
 
 
-import com.ufcg.psoft.commerce.dto.ClientePostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.EmpresaPostPutRequestDTO;
-import com.ufcg.psoft.commerce.service.cliente.ClienteService;
 import com.ufcg.psoft.commerce.service.empresa.EmpresaService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,8 +14,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/empresas")
 public class EmpresaController {
 
-    @Autowired
-    EmpresaService empresaService;
+    private final EmpresaService empresaService;
+
+    public EmpresaController(EmpresaService empresaService){
+        this.empresaService = empresaService;
+    }
 
     @GetMapping("/{cnpj}")
     public ResponseEntity<?> recuperarEmpresa(
@@ -94,5 +94,27 @@ public class EmpresaController {
         return ResponseEntity
                 .status(HttpStatus.NO_CONTENT)
                 .build();
+    }
+
+    @PutMapping("/{cnpj}/aprovar/{tecnicoId}")
+    public ResponseEntity<?> aprovarTecnico(
+            @PathVariable String cnpj,
+            @PathVariable Long tecnicoId,
+            @RequestParam String codigo) {
+
+        empresaService.aprovarTecnico(cnpj, codigo, tecnicoId);
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    @PutMapping("/{cnpj}/rejeitar/{tecnicoId}")
+    public ResponseEntity<?> rejeitarTecnico(
+            @PathVariable String cnpj,
+            @PathVariable Long tecnicoId,
+            @RequestParam String codigo) {
+
+        empresaService.rejeitarTecnico(cnpj, codigo, tecnicoId);
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 }

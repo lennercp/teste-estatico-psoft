@@ -10,7 +10,9 @@ import com.ufcg.psoft.commerce.exception.CustomErrorType;
 import com.ufcg.psoft.commerce.model.Admin;
 import com.ufcg.psoft.commerce.model.Empresa;
 import com.ufcg.psoft.commerce.repository.AdminRepository;
+import com.ufcg.psoft.commerce.model.Tecnico;
 import com.ufcg.psoft.commerce.repository.EmpresaRepository;
+import com.ufcg.psoft.commerce.repository.TecnicoRepository;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -48,10 +50,13 @@ public class EmpresaControllerTest {
 
     @Autowired
     AdminRepository adminRepository;
+    TecnicoRepository tecnicoRepository;
 
     ObjectMapper objectMapper = new ObjectMapper();
 
     Empresa empresa;
+    
+    Tecnico tecnico;
 
     EmpresaPostPutRequestDTO empresaPostPutRequestDTO;
 
@@ -83,11 +88,21 @@ public class EmpresaControllerTest {
                 .endereco(empresa.getEndereco())
                 .codigoAcesso(empresa.getCodigoAcesso())
                 .build();
+
+        tecnico = tecnicoRepository.save(Tecnico.builder()
+                .nomeCompleto("Tecnico Teste")
+                .especialidade("Geral")
+                .placaVeiculo("ABC-1234")
+                .tipoVeiculo("Carro")
+                .corVeiculo("Branco")
+                .codigoAcesso("123456")
+                .build()
+        );
     }
 
     @AfterEach
     void tearDown() {
-        empresaRepository.deleteAll();  adminRepository.deleteAll();
+        tecnicoRepository.deleteAll(); empresaRepository.deleteAll();  adminRepository.deleteAll();
     }
 
     @Nested
@@ -312,4 +327,82 @@ public class EmpresaControllerTest {
 
     }
 
+
+    @Nested
+    @DisplayName("Conjunto de casos de verificação de aprovação e reprovação de técnicos")
+    class EmpresaVerificacaoAprovacaoReprovacaoTecnico {
+
+        @Test
+        @DisplayName("Quando aprovamos tecnico valido")
+        void quandoAprovamosTecnicoValido() throws Exception {
+            driver.perform(put(URI_EMPRESAS + "/" + empresa.getCnpj() + "/aprovar/" + tecnico.getId())
+                            .param("codigo", empresa.getCodigoAcesso()))
+                    .andExpect(status().isNoContent())
+                    .andDo(print());
+        }
+
+        @Test
+        @DisplayName("Quando aprovamos tecnico com empresa inexistente")
+        void quandoAprovamosTecnicoEmpresaInexistente() throws Exception {
+            String responseJsonString = driver.perform(put(URI_EMPRESAS + "/00000000000000/aprovar/" + tecnico.getId())
+                            .param("codigo", empresa.getCodigoAcesso()))
+                    .andExpect(status().isBadRequest())
+                    .andDo(print())
+                    .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+            CustomErrorType resultado = objectMapper.readValue(responseJsonString, CustomErrorType.class);
+            assertEquals("A empresa consultada não existe!", resultado.getMessage());
+        }
+
+        @Test
+        @DisplayName("Quando aprovamos tecnico inexistente")
+        void quandoAprovamosTecnicoInexistente() throws Exception {
+            String responseJsonString = driver.perform(put(URI_EMPRESAS + "/" + empresa.getCnpj() + "/aprovar/" + 99999L)
+                            .param("codigo", empresa.getCodigoAcesso()))
+                    .andExpect(status().isBadRequest())
+                    .andDo(print())
+                    .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+            CustomErrorType resultado = objectMapper.readValue(responseJsonString, CustomErrorType.class);
+            assertEquals("O técnico consultado não existe!", resultado.getMessage());
+        }
+
+        @Test
+        @DisplayName("Quando rejeitamos tecnico valido")
+        void quandoRejeitamosTecnicoValido() throws Exception {
+            driver.perform(put(URI_EMPRESAS + "/" + empresa.getCnpj() + "/rejeitar/" + tecnico.getId())
+                            .param("codigo", empresa.getCodigoAcesso()))
+                    .andExpect(status().isNoContent())
+                    .andDo(print());
+        }
+
+        @Test
+        @DisplayName("Quando rejeitamos tecnico com empresa inexistente")
+        void quandoRejeitamosTecnicoEmpresaInexistente() throws Exception {
+            String responseJsonString = driver.perform(put(URI_EMPRESAS + "/00000000000000/rejeitar/" + tecnico.getId())
+                            .param("codigo", empresa.getCodigoAcesso()))
+                    .andExpect(status().isBadRequest())
+                    .andDo(print())
+                    .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+            CustomErrorType resultado = objectMapper.readValue(responseJsonString, CustomErrorType.class);
+            assertEquals("A empresa consultada não existe!", resultado.getMessage());
+        }
+
+        @Test
+        @DisplayName("Quando rejeitamos tecnico inexistente")
+        void quandoRejeitamosTecnicoInexistente() throws Exception {
+            String responseJsonString = driver.perform(put(URI_EMPRESAS + "/" + empresa.getCnpj() + "/rejeitar/" + 99999L)
+                            .param("codigo", empresa.getCodigoAcesso()))
+                    .andExpect(status().isBadRequest())
+                    .andDo(print())
+                    .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+            CustomErrorType resultado = objectMapper.readValue(responseJsonString, CustomErrorType.class);
+            assertEquals("O técnico consultado não existe!", resultado.getMessage());
+        }
+
+    }
+
 }
+

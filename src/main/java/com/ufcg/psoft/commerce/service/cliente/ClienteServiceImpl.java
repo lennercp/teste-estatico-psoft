@@ -1,10 +1,13 @@
 package com.ufcg.psoft.commerce.service.cliente;
 
+import com.ufcg.psoft.commerce.dto.ClientePatchRequestDTO;
 import com.ufcg.psoft.commerce.exception.ClienteNaoExisteException;
+import com.ufcg.psoft.commerce.model.HistoricoAssinatura;
 import com.ufcg.psoft.commerce.repository.ClienteRepository;
 import com.ufcg.psoft.commerce.dto.ClientePostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.ClienteResponseDTO;
 import com.ufcg.psoft.commerce.model.Cliente;
+import com.ufcg.psoft.commerce.repository.HistoricoAssinaturaRepository;
 import com.ufcg.psoft.commerce.service.auth.AuthService;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -16,15 +19,18 @@ import java.util.stream.Collectors;
 public class ClienteServiceImpl implements ClienteService {
 
     private final ClienteRepository clienteRepository;
+    private final HistoricoAssinaturaRepository historicoAssinaturaRepository;
     private final ModelMapper modelMapper;
     private final AuthService authService;
 
     public ClienteServiceImpl(ClienteRepository clienteRepository,
                               ModelMapper modelMapper,
-                              AuthService authService) {
+                              AuthService authService,
+                              HistoricoAssinaturaRepository historicoAssinaturaRepository) {
         this.clienteRepository = clienteRepository;
         this.modelMapper = modelMapper;
         this.authService = authService;
+        this.historicoAssinaturaRepository = historicoAssinaturaRepository;
     }
 
     @Override
@@ -39,9 +45,50 @@ public class ClienteServiceImpl implements ClienteService {
     }
 
     @Override
+    public ClienteResponseDTO alterarParcial(Long id, String codigoAcesso, ClientePatchRequestDTO clientePatchRequestDTO) {
+        authService.autenticarCliente(id, codigoAcesso);
+
+        Cliente cliente = clienteRepository.findById(id).orElseThrow(ClienteNaoExisteException::new);
+
+        org.modelmapper.ModelMapper modelMapperLocal = new org.modelmapper.ModelMapper();
+        modelMapperLocal.getConfiguration().setSkipNullEnabled(true);
+
+        modelMapperLocal.map(clientePatchRequestDTO, cliente);
+
+        clienteRepository.save(cliente);
+
+        return modelMapper.map(cliente, ClienteResponseDTO.class);
+    }
+
+    @Override
+    public ClienteResponseDTO novoCicloCobranca(Long id) {
+        Cliente cliente = clienteRepository.findById(id).orElseThrow(ClienteNaoExisteException::new);
+
+        if(cliente.getPlanoAgendado() != cliente.getPlanoAtual()){
+            cliente.setPlanoAtual(cliente.getPlanoAgendado());
+
+            registraHistoricoAssinatura(cliente);
+            clienteRepository.save(cliente);
+        }
+
+        return modelMapper.map(cliente, ClienteResponseDTO.class);
+    }
+
+    private void registraHistoricoAssinatura(Cliente cliente){
+        historicoAssinaturaRepository.save(HistoricoAssinatura.builder()
+                                            .cliente(cliente)
+                                            .planoNovo(cliente.getPlanoAtual())
+                                            .build()
+                                           );
+    }
+
+    @Override
     public ClienteResponseDTO criar(ClientePostPutRequestDTO clientePostPutRequestDTO) {
         Cliente cliente = modelMapper.map(clientePostPutRequestDTO, Cliente.class);
+        cliente.setPlanoAtual(cliente.getPlanoAgendado());
         clienteRepository.save(cliente);
+
+        registraHistoricoAssinatura(cliente);
         return modelMapper.map(cliente, ClienteResponseDTO.class);
     }
 
