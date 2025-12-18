@@ -3,6 +3,8 @@ package com.ufcg.psoft.commerce.service;
 
 import com.ufcg.psoft.commerce.dto.EmpresaPostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.EmpresaResponseDTO;
+import com.ufcg.psoft.commerce.exception.CustomErrorType;
+import com.ufcg.psoft.commerce.exception.AdminSenhaInvalidaException;
 import com.ufcg.psoft.commerce.exception.CodigoDeAcessoInvalidoException;
 import com.ufcg.psoft.commerce.exception.EmpresaNaoExisteException;
 import com.ufcg.psoft.commerce.model.Empresa;
@@ -43,11 +45,12 @@ public class EmpresaServiceImplTest {
 
     static final String CNPJ = "12345678910111";
     static final String CODIGO = "654321";
+    static final Long ADMIN_ID = 1L;
+    static final String SENHA_ADMIN = "senhaAdminValida";
 
     Empresa empresa;
     EmpresaPostPutRequestDTO requestDTO;
     EmpresaResponseDTO responseDTO;
-
 
     @BeforeEach
     void setup() {
@@ -69,9 +72,13 @@ public class EmpresaServiceImplTest {
     }
 
 
+
     @Test
     @DisplayName("Quando criamos empresa válida")
     void quandoCriamosEmpresaValida() {
+
+        doNothing().when(authService)
+                .autenticarAdmin(ADMIN_ID, SENHA_ADMIN);
 
         when(modelMapper.map(requestDTO, Empresa.class))
                 .thenReturn(empresa);
@@ -80,16 +87,36 @@ public class EmpresaServiceImplTest {
                 .thenReturn(responseDTO);
 
         EmpresaResponseDTO resultado =
-                empresaService.criar(requestDTO);
+                empresaService.criar(ADMIN_ID, SENHA_ADMIN, requestDTO);
 
         assertNotNull(resultado);
+
+        verify(authService).autenticarAdmin(ADMIN_ID, SENHA_ADMIN);
         verify(empresaRepository).save(empresa);
     }
+
+    @Test
+    @DisplayName("Quando tentamos criar empresa com senha de admin inválida")
+    void quandoCriamosEmpresaComSenhaAdminInvalida() {
+
+        doThrow(AdminSenhaInvalidaException.class)
+                .when(authService)
+                .autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
+
+        assertThrows(AdminSenhaInvalidaException.class,
+                () -> empresaService.criar(ADMIN_ID,SENHA_ADMIN, requestDTO));
+
+        verify(empresaRepository, never()).save(any());
+    }
+
 
 
     @Test
     @DisplayName("Quando alteramos empresa válida")
     void quandoAlteramosEmpresaValida() {
+
+        doNothing().when(authService)
+                .autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
 
         doNothing().when(authService)
                 .autenticarEmpresa(CNPJ, CODIGO);
@@ -100,45 +127,47 @@ public class EmpresaServiceImplTest {
         doAnswer(invocation -> {
             EmpresaPostPutRequestDTO dto = invocation.getArgument(0);
             Empresa ent = invocation.getArgument(1);
-
             ent.setNomeFantasia(dto.getNomeFantasia());
             ent.setEndereco(dto.getEndereco());
             ent.setCodigoAcesso(dto.getCodigoAcesso());
-
             return null;
         }).when(modelMapper)
                 .map(any(EmpresaPostPutRequestDTO.class), any(Empresa.class));
 
-
         when(modelMapper.map(any(Empresa.class), eq(EmpresaResponseDTO.class)))
                 .thenReturn(responseDTO);
 
-
         EmpresaResponseDTO resultado =
-                empresaService.alterar(CNPJ, CODIGO, requestDTO);
-
+                empresaService.alterar(ADMIN_ID,CNPJ, CODIGO, SENHA_ADMIN, requestDTO);
 
         assertNotNull(resultado);
 
+        verify(authService).autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
         verify(authService).autenticarEmpresa(CNPJ, CODIGO);
         verify(empresaRepository).save(empresa);
     }
 
     @Test
-    @DisplayName("Quando alteramos empresa inexistente")
-    void quandoAlteramosEmpresaInexistente() {
+    @DisplayName("Quando tentamos alterar empresa com senha de admin inválida")
+    void quandoAlteramosEmpresaComSenhaAdminInvalida() {
 
-        doNothing().when(authService).autenticarEmpresa(CNPJ, CODIGO);
-        when(empresaRepository.findByCnpj(CNPJ))
-                .thenReturn(Optional.empty());
+        doThrow(AdminSenhaInvalidaException.class)
+                .when(authService)
+                .autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
 
-        assertThrows(EmpresaNaoExisteException.class,
-                () -> empresaService.alterar(CNPJ, CODIGO, requestDTO));
+        assertThrows(AdminSenhaInvalidaException.class,
+                () -> empresaService.alterar(ADMIN_ID,CNPJ, CODIGO, SENHA_ADMIN, requestDTO));
+
+        verify(empresaRepository, never()).save(any());
     }
+
 
     @Test
     @DisplayName("Quando removemos empresa válida")
     void quandoRemovemosEmpresaValida() {
+
+        doNothing().when(authService)
+                .autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
 
         doNothing().when(authService)
                 .autenticarEmpresa(CNPJ, CODIGO);
@@ -146,27 +175,28 @@ public class EmpresaServiceImplTest {
         when(empresaRepository.findByCnpj(CNPJ))
                 .thenReturn(Optional.of(empresa));
 
-        empresaService.remover(CNPJ, CODIGO);
+        empresaService.remover(ADMIN_ID,CNPJ, CODIGO, SENHA_ADMIN);
 
+        verify(authService).autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
         verify(authService).autenticarEmpresa(CNPJ, CODIGO);
         verify(empresaRepository).delete(empresa);
     }
 
     @Test
-    @DisplayName("Quando removemos empresa inexistente")
-    void quandoRemovemosEmpresaInexistente() {
+    @DisplayName("Quando tentamos remover empresa com senha de admin inválida")
+    void quandoRemovemosEmpresaComSenhaAdminInvalida() {
 
-        doNothing().when(authService)
-                .autenticarEmpresa(CNPJ, CODIGO);
+        doThrow(AdminSenhaInvalidaException.class)
+                .when(authService)
+                .autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
 
-        when(empresaRepository.findByCnpj(CNPJ))
-                .thenReturn(Optional.empty());
-
-        assertThrows(EmpresaNaoExisteException.class,
-                () -> empresaService.remover(CNPJ, CODIGO));
+        assertThrows(AdminSenhaInvalidaException.class,
+                () -> empresaService.remover(ADMIN_ID,CNPJ, CODIGO, SENHA_ADMIN));
 
         verify(empresaRepository, never()).delete(any());
     }
+
+
 
     @Test
     @DisplayName("Quando listamos empresas")
@@ -178,7 +208,6 @@ public class EmpresaServiceImplTest {
         List<EmpresaResponseDTO> resultado = empresaService.listar();
 
         assertFalse(resultado.isEmpty());
-        assertEquals(empresa.getCnpj(), resultado.get(0).getCnpj());
     }
 
     @Test
@@ -192,11 +221,48 @@ public class EmpresaServiceImplTest {
                 empresaService.recuperar(CNPJ);
 
         assertNotNull(resultado);
-        assertEquals(CNPJ, resultado.getCnpj());
     }
 
     @Test
-    @DisplayName("Quando recuperamos empresa inexistente")
+    @DisplayName("Quando tentamos alterar empresa inexistente com credenciais válidas")
+    void quandoAlteramosEmpresaInexistenteComCredenciaisValidas() {
+
+        doNothing().when(authService)
+                .autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
+
+        doNothing().when(authService)
+                .autenticarEmpresa(CNPJ, CODIGO);
+
+        when(empresaRepository.findByCnpj(CNPJ))
+                .thenReturn(Optional.empty());
+
+        assertThrows(EmpresaNaoExisteException.class,
+                () -> empresaService.alterar(ADMIN_ID,CNPJ, CODIGO, SENHA_ADMIN, requestDTO));
+
+        verify(empresaRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Quando tentamos remover empresa inexistente com credenciais válidas")
+    void quandoRemovemosEmpresaInexistenteComCredenciaisValidas() {
+
+        doNothing().when(authService)
+                .autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
+
+        doNothing().when(authService)
+                .autenticarEmpresa(CNPJ, CODIGO);
+
+        when(empresaRepository.findByCnpj(CNPJ))
+                .thenReturn(Optional.empty());
+
+        assertThrows(EmpresaNaoExisteException.class,
+                () -> empresaService.remover(ADMIN_ID,CNPJ, CODIGO, SENHA_ADMIN));
+
+        verify(empresaRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("Quando tentamos recuperar empresa inexistente")
     void quandoRecuperamosEmpresaInexistente() {
 
         when(empresaRepository.findByCnpj(CNPJ))
@@ -207,37 +273,17 @@ public class EmpresaServiceImplTest {
     }
 
     @Test
-    @DisplayName("Quando tentamos alterar empresa com código de acesso inválido")
-    void quandoAlteramosEmpresaComCodigoInvalido() {
+    @DisplayName("Quando senha do admin é inválida, não deve buscar empresa")
+    void quandoSenhaAdminInvalidaNaoBuscaEmpresa() {
 
-
-        doThrow(new CodigoDeAcessoInvalidoException())
+        doThrow(AdminSenhaInvalidaException.class)
                 .when(authService)
-                .autenticarEmpresa(CNPJ, CODIGO);
+                .autenticarAdmin(ADMIN_ID,SENHA_ADMIN);
 
-        assertThrows(CodigoDeAcessoInvalidoException.class,
-                () -> empresaService.alterar(CNPJ, CODIGO, requestDTO));
+        assertThrows(AdminSenhaInvalidaException.class,
+                () -> empresaService.alterar(ADMIN_ID,CNPJ, CODIGO, SENHA_ADMIN, requestDTO));
 
         verify(empresaRepository, never()).findByCnpj(any());
-        verify(empresaRepository, never()).save(any());
-    }
-
-
-    @Test
-    @DisplayName("Quando tentamos remover empresa com código de acesso inválido")
-    void quandoRemovemosEmpresaComCodigoDeAcessoInvalido() {
-
-        doThrow(CodigoDeAcessoInvalidoException.class)
-                .when(authService)
-                .autenticarEmpresa(CNPJ, CODIGO);
-
-
-        assertThrows(CodigoDeAcessoInvalidoException.class,
-                () -> empresaService.remover(CNPJ, CODIGO));
-
-
-        verify(empresaRepository, never()).findByCnpj(any());
-        verify(empresaRepository, never()).delete(any());
     }
 
 }

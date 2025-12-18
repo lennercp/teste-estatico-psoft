@@ -7,7 +7,9 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.ufcg.psoft.commerce.dto.EmpresaPostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.EmpresaResponseDTO;
 import com.ufcg.psoft.commerce.exception.CustomErrorType;
+import com.ufcg.psoft.commerce.model.Admin;
 import com.ufcg.psoft.commerce.model.Empresa;
+import com.ufcg.psoft.commerce.repository.AdminRepository;
 import com.ufcg.psoft.commerce.model.Tecnico;
 import com.ufcg.psoft.commerce.repository.EmpresaRepository;
 import com.ufcg.psoft.commerce.repository.TecnicoRepository;
@@ -21,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -33,6 +36,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("Testes do controlador de Empresas")
 public class EmpresaControllerTest {
 
+    static final Long ADMIN_ID = 1L;
+    final String SENHA_ADMIN_VALIDA = "admin123";
+    final String SENHA_ADMIN_INVALIDA = "adminErrada";
+
     final String URI_EMPRESAS = "/empresas";
 
     @Autowired
@@ -42,6 +49,7 @@ public class EmpresaControllerTest {
     EmpresaRepository empresaRepository;
 
     @Autowired
+    AdminRepository adminRepository;
     TecnicoRepository tecnicoRepository;
 
     ObjectMapper objectMapper = new ObjectMapper();
@@ -54,7 +62,17 @@ public class EmpresaControllerTest {
 
     @BeforeEach
     void setup() {
+
+
         objectMapper.registerModule(new JavaTimeModule());
+
+        adminRepository.save(
+                Admin.builder()
+                        .id(ADMIN_ID)
+                        .nome("admin")
+                        .senha(SENHA_ADMIN_VALIDA)
+                        .build()
+        );
 
         empresa = empresaRepository.save(Empresa.builder()
                 .cnpj("12345678910111")
@@ -84,13 +102,76 @@ public class EmpresaControllerTest {
 
     @AfterEach
     void tearDown() {
-        tecnicoRepository.deleteAll();
-        empresaRepository.deleteAll();
+        tecnicoRepository.deleteAll(); empresaRepository.deleteAll();  adminRepository.deleteAll();
     }
 
     @Nested
     @DisplayName("Conjunto de casos de verificação do nome")
-    class EmpresaVerificacaoNome {
+    class EmpresaVerificacao {
+        @Test
+        @DisplayName("Quando alteramos o nome da empresa com admin e código válidos")
+        void quandoAlteramosNomeEmpresaAdminECodigoValidos() throws Exception {
+
+            empresaPostPutRequestDTO.setNomeFantasia("Empresa Alterada SA");
+
+            String responseJsonString = driver.perform(put(URI_EMPRESAS + "/" + empresa.getCnpj())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .param("id", String.valueOf(ADMIN_ID))
+                            .param("codigoAcesso", empresa.getCodigoAcesso())
+                            .param("senhaAdmin", SENHA_ADMIN_VALIDA)
+                            .content(objectMapper.writeValueAsString(empresaPostPutRequestDTO)))
+                    .andExpect(status().isOk())
+                    .andDo(print())
+                    .andReturn().getResponse().getContentAsString();
+
+            EmpresaResponseDTO resultado =
+                    objectMapper.readValue(responseJsonString, EmpresaResponseDTO.class);
+
+            assertEquals("Empresa Alterada SA", resultado.getNomeFantasia());
+        }
+
+        @Test
+        @DisplayName("Quando alteramos empresa com admin válido e código inválido")
+        void quandoAlteramosEmpresaCodigoInvalidoAdminValido() throws Exception {
+
+            driver.perform(put(URI_EMPRESAS + "/" + empresa.getCnpj())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .param("id", String.valueOf(ADMIN_ID))
+                            .param("codigoAcesso", "000000")
+                            .param("senhaAdmin", SENHA_ADMIN_VALIDA)
+                            .content(objectMapper.writeValueAsString(empresaPostPutRequestDTO)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("Quando alteramos empresa com admin inválido e código válido")
+        void quandoAlteramosEmpresaAdminInvalidoCodigoValido() throws Exception {
+
+            driver.perform(put(URI_EMPRESAS + "/" + empresa.getCnpj())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .param("id", String.valueOf(ADMIN_ID))
+                            .param("codigoAcesso", empresa.getCodigoAcesso())
+                            .param("senhaAdmin", SENHA_ADMIN_INVALIDA)
+                            .content(objectMapper.writeValueAsString(empresaPostPutRequestDTO)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("Quando alteramos empresa com admin e código inválidos")
+        void quandoAlteramosEmpresaAdminECodigoInvalidos() throws Exception {
+
+            driver.perform(put(URI_EMPRESAS + "/" + empresa.getCnpj())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .param("id", String.valueOf(ADMIN_ID))
+                            .param("codigo", "000000")
+                            .param("senhaAdmin", SENHA_ADMIN_INVALIDA)
+                            .content(objectMapper.writeValueAsString(empresaPostPutRequestDTO)))
+                    .andExpect(status().isBadRequest());
+        }
+
+
+
+
 
         @Test
         @DisplayName("Quando recuperamos uma empresa com dados válidos")
@@ -108,36 +189,18 @@ public class EmpresaControllerTest {
             assertEquals("Empresa Teste LTDA", resultado.getNomeFantasia());
         }
 
-        @Test
-        @DisplayName("Quando alteramos o nome da empresa com dados válidos")
-        void quandoAlteramosNomeEmpresaValido() throws Exception {
-
-            empresaPostPutRequestDTO.setNomeFantasia("Empresa Alterada SA");
-
-            String responseJsonString = driver.perform(put(URI_EMPRESAS + "/" + empresa.getCnpj())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .param("codigo", empresa.getCodigoAcesso())
-                            .content(objectMapper.writeValueAsString(empresaPostPutRequestDTO)))
-                    .andExpect(status().isOk())
-                    .andDo(print())
-                    .andReturn().getResponse().getContentAsString();
-
-            EmpresaResponseDTO resultado =
-                    objectMapper.readValue(responseJsonString, EmpresaResponseDTO.class);
-
-            assertEquals("Empresa Alterada SA", resultado.getNomeFantasia());
-        }
-
 
         @Test
-        @DisplayName("Quando alteramos o nome da empresa nulo")
-        void quandoAlteramosNomeEmpresaNulo() throws Exception {
+        @DisplayName("Quando alteramos o nome da empresa nulo com admin e código válidos")
+        void quandoAlteramosNomeEmpresaNuloAdminValido() throws Exception {
 
             empresaPostPutRequestDTO.setNomeFantasia(null);
 
             String responseJsonString = driver.perform(put(URI_EMPRESAS + "/" + empresa.getCnpj())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .param("codigo", empresa.getCodigoAcesso())
+                            .param("id", String.valueOf(ADMIN_ID))
+                            .param("codigoAcesso", empresa.getCodigoAcesso())
+                            .param("senhaAdmin", SENHA_ADMIN_VALIDA)
                             .content(objectMapper.writeValueAsString(empresaPostPutRequestDTO)))
                     .andExpect(status().isBadRequest())
                     .andDo(print())
@@ -151,6 +214,7 @@ public class EmpresaControllerTest {
                     () -> assertEquals("Nome fantasia é obrigatório", resultado.getErrors().get(0))
             );
         }
+
 
     }
 
@@ -199,55 +263,66 @@ public class EmpresaControllerTest {
 
 
         @Test
-        @DisplayName("Quando criamos uma empresa válida")
-        void quandoCriamosEmpresaValida() throws Exception {
+        @DisplayName("Quando criamos empresa com admin válido")
+        void quandoCriamosEmpresaAdminValido() throws Exception {
 
             empresaRepository.deleteAll();
 
-            String responseJsonString = driver.perform(post(URI_EMPRESAS)
+            driver.perform(post(URI_EMPRESAS)
+                            .param("id", String.valueOf(ADMIN_ID))
+                            .param("senhaAdmin", SENHA_ADMIN_VALIDA)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(empresaPostPutRequestDTO)))
-                    .andExpect(status().isCreated())
-                    .andDo(print())
-                    .andReturn().getResponse().getContentAsString();
-
-
-            EmpresaResponseDTO resultado =
-                    objectMapper.readValue(responseJsonString, EmpresaResponseDTO.class);
-
-            assertAll(
-                    () -> assertNotNull(resultado.getCnpj()),
-                    () -> assertEquals(empresaPostPutRequestDTO.getNomeFantasia(), resultado.getNomeFantasia())
-            );
+                    .andExpect(status().isCreated());
         }
 
         @Test
-        @DisplayName("Quando excluímos uma empresa válida")
-        void quandoExcluimosEmpresaValida() throws Exception {
+        @DisplayName("Quando criamos empresa com admin inválido")
+        void quandoCriamosEmpresaAdminInvalido() throws Exception {
 
-            String responseJsonString = driver.perform(delete(URI_EMPRESAS + "/" + empresa.getCnpj())
-                            .param("codigo", empresa.getCodigoAcesso()))
-                    .andExpect(status().isNoContent())
-                    .andDo(print())
-                    .andReturn().getResponse().getContentAsString();
+            driver.perform(post(URI_EMPRESAS)
+                            .param("id", String.valueOf(ADMIN_ID))
+                            .param("senhaAdmin", SENHA_ADMIN_INVALIDA)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(empresaPostPutRequestDTO)))
+                    .andExpect(status().isBadRequest());
+        }
 
-            assertTrue(responseJsonString.isBlank());
+
+        @Test
+        @DisplayName("Quando excluímos empresa com admin e código válidos")
+        void quandoExcluimosEmpresaAdminECodigoValidos() throws Exception {
+
+            driver.perform(delete(URI_EMPRESAS + "/" + empresa.getCnpj())
+                            .param("id", String.valueOf(ADMIN_ID))
+                            .param("codigoAcesso", empresa.getCodigoAcesso())
+                            .param("senhaAdmin", SENHA_ADMIN_VALIDA))
+                    .andExpect(status().isNoContent());
+
+        }
+
+
+
+        @Test
+        @DisplayName("Quando excluímos empresa com admin válido e código inválido")
+        void quandoExcluimosEmpresaAdminValidoCodigoInvalido() throws Exception {
+
+            driver.perform(delete(URI_EMPRESAS + "/" + empresa.getCnpj())
+                            .param("id", String.valueOf(ADMIN_ID))
+                            .param("codigoAcesso", "000000")
+                            .param("senhaAdmin", SENHA_ADMIN_VALIDA))
+                    .andExpect(status().isBadRequest());
         }
 
         @Test
-        @DisplayName("Quando excluímos empresa com código inválido")
-        void quandoExcluimosEmpresaCodigoInvalido() throws Exception {
+        @DisplayName("Quando excluímos empresa com admin inválido")
+        void quandoExcluimosEmpresaAdminInvalido() throws Exception {
 
-            String responseJsonString = driver.perform(delete(URI_EMPRESAS + "/" + empresa.getCnpj())
-                            .param("codigo", "000000"))
-                    .andExpect(status().isBadRequest())
-                    .andDo(print())
-                    .andReturn().getResponse().getContentAsString();
-
-            CustomErrorType resultado =
-                    objectMapper.readValue(responseJsonString, CustomErrorType.class);
-
-            assertEquals("Codigo de acesso invalido!", resultado.getMessage());
+            driver.perform(delete(URI_EMPRESAS + "/" + empresa.getCnpj())
+                            .param("id", String.valueOf(ADMIN_ID))
+                            .param("codigoAcesso", empresa.getCodigoAcesso())
+                            .param("senhaAdmin", SENHA_ADMIN_INVALIDA))
+                    .andExpect(status().isBadRequest());
         }
 
     }

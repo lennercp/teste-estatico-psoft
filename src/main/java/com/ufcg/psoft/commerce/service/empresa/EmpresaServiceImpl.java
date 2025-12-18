@@ -32,10 +32,28 @@ public class EmpresaServiceImpl implements EmpresaService {
     }
 
     @Override
-    public EmpresaResponseDTO alterar(String cnpj, String codigoAcesso, EmpresaPostPutRequestDTO empresaPostPutRequestDTO) {
+    public EmpresaResponseDTO criar(Long id, String senhaAdmin, EmpresaPostPutRequestDTO empresaPostPutRequestDTO) {
+
+
+        authService.autenticarAdmin(id, senhaAdmin);
+
+        Empresa empresa = modelMapper.map(empresaPostPutRequestDTO, Empresa.class);
+        empresaRepository.save(empresa);
+
+        return modelMapper.map(empresa, EmpresaResponseDTO.class);
+    }
+
+    @Override
+    public EmpresaResponseDTO alterar(Long id, String cnpj, String codigoAcesso, String senhaAdmin, EmpresaPostPutRequestDTO empresaPostPutRequestDTO) {
+
+
+        authService.autenticarAdmin(id, senhaAdmin);
+
 
         authService.autenticarEmpresa(cnpj, codigoAcesso);
-        Empresa empresa = empresaRepository.findByCnpj(cnpj).orElseThrow(EmpresaNaoExisteException::new);
+
+        Empresa empresa = empresaRepository.findByCnpj(cnpj)
+                .orElseThrow(EmpresaNaoExisteException::new);
 
         modelMapper.map(empresaPostPutRequestDTO, empresa);
         empresaRepository.save(empresa);
@@ -44,21 +62,20 @@ public class EmpresaServiceImpl implements EmpresaService {
     }
 
     @Override
-    public EmpresaResponseDTO criar(EmpresaPostPutRequestDTO empresaPostPutRequestDTO) {
+    public void remover(Long id, String cnpj,
+                        String codigoAcesso,
+                        String senhaAdmin) {
 
-        Empresa empresa = modelMapper.map(empresaPostPutRequestDTO, Empresa.class);
-        empresaRepository.save(empresa);
-        return modelMapper.map(empresa, EmpresaResponseDTO.class);
-    }
+        authService.autenticarAdmin(id, senhaAdmin);
 
-    @Override
-    public void remover(String cnpj, String codigoAcesso) {
+        authService.autenticarEmpresa(cnpj, codigoAcesso);
 
-        authService.autenticarEmpresa(cnpj,codigoAcesso);
-        Empresa empresa = empresaRepository.findByCnpj(cnpj).orElseThrow(EmpresaNaoExisteException::new);
+        Empresa empresa = empresaRepository.findByCnpj(cnpj)
+                .orElseThrow(EmpresaNaoExisteException::new);
 
         empresaRepository.delete(empresa);
     }
+
 
     @Override
     public void aprovarTecnico(String cnpj, String codigoAcesso, Long tecnicoId) {
@@ -78,17 +95,16 @@ public class EmpresaServiceImpl implements EmpresaService {
 
     @Override
     public List<EmpresaResponseDTO> listar() {
-        List<Empresa> empresas = empresaRepository.findAll();
-        return empresas.stream()
+        return empresaRepository.findAll()
+                .stream()
                 .map(EmpresaResponseDTO::new)
                 .collect(Collectors.toList());
     }
 
     @Override
     public EmpresaResponseDTO recuperar(String cnpj) {
-
-        Empresa empresa = empresaRepository.findByCnpj(cnpj).orElseThrow(EmpresaNaoExisteException::new);
+        Empresa empresa = empresaRepository.findByCnpj(cnpj)
+                .orElseThrow(EmpresaNaoExisteException::new);
         return new EmpresaResponseDTO(empresa);
     }
 }
-

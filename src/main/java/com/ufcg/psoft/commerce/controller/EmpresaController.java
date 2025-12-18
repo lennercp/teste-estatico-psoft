@@ -11,10 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 
 @RestController
-@RequestMapping(
-        value = "/empresas",
-        produces = MediaType.APPLICATION_JSON_VALUE
-)
+@RequestMapping("/empresas")
 public class EmpresaController {
 
     private final EmpresaService empresaService;
@@ -32,44 +29,71 @@ public class EmpresaController {
                 .body(empresaService.recuperar(cnpj));
     }
 
-    @GetMapping("")
+    @GetMapping
     public ResponseEntity<?> listarEmpresas() {
+
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(empresaService.listar());
     }
 
-
-    @PostMapping()
+    @PostMapping
     public ResponseEntity<?> criarEmpresa(
+            @RequestParam Long id,
+            @RequestParam String senhaAdmin,
             @RequestBody @Valid EmpresaPostPutRequestDTO empresaPostPutRequestDTO) {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(empresaService.criar(empresaPostPutRequestDTO));
+                .body(
+                        empresaService.criar(
+                                id,
+                                senhaAdmin,
+                                empresaPostPutRequestDTO
+                        )
+                );
     }
 
     @PutMapping("/{cnpj}")
     public ResponseEntity<?> atualizarEmpresa(
+            @RequestParam Long id,
             @PathVariable String cnpj,
-            @RequestParam String codigo,
+            @RequestParam String codigoAcesso,
+
+            @RequestParam String senhaAdmin,
             @RequestBody @Valid EmpresaPostPutRequestDTO empresaPostPutRequestDTO) {
 
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(empresaService.alterar(cnpj, codigo, empresaPostPutRequestDTO));
+                .body(
+                        empresaService.alterar(
+                                id,
+                                cnpj,
+                                codigoAcesso,
+                                senhaAdmin,
+                                empresaPostPutRequestDTO
+                        )
+                );
     }
 
     @DeleteMapping("/{cnpj}")
     public ResponseEntity<?> excluirEmpresa(
+            @RequestParam Long id,
             @PathVariable String cnpj,
-            @RequestParam String codigo) {
+            @RequestParam String codigoAcesso,
 
-        empresaService.remover(cnpj, codigo);
+            @RequestParam String senhaAdmin) {
+
+        empresaService.remover(
+                id,
+                cnpj,
+                codigoAcesso,
+                senhaAdmin
+        );
 
         return ResponseEntity
                 .status(HttpStatus.NO_CONTENT)
-                .body("");
+                .build();
     }
 
     @PutMapping("/{cnpj}/aprovar/{tecnicoId}")
