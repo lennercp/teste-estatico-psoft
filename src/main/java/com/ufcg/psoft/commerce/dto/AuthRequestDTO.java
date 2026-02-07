@@ -1,8 +1,6 @@
 package com.ufcg.psoft.commerce.dto;
 
 import com.ufcg.psoft.commerce.model.TipoUsuario;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 public class AuthRequestDTO {
 
