@@ -1,7 +1,6 @@
 package com.ufcg.psoft.commerce.service.auth;
 
 import com.ufcg.psoft.commerce.dto.AuthRequestDTO;
-import com.ufcg.psoft.commerce.model.Chamado;
 
 public interface AuthService {
     void autenticarCliente(Long id, String codigoAcesso);

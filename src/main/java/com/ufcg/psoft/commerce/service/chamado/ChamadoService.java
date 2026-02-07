@@ -4,8 +4,6 @@ package com.ufcg.psoft.commerce.service.chamado;
 import com.ufcg.psoft.commerce.dto.*;
 import org.springframework.http.ResponseEntity;
 
-import java.util.List;
-
 public interface ChamadoService {
 
     ChamadoResponseDTO recuperar(Long id, AuthRequestDTO auth);
