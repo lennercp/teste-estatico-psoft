@@ -1,15 +1,21 @@
 package com.ufcg.psoft.commerce.dto;
 
 import com.ufcg.psoft.commerce.model.TipoUsuario;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AuthRequestDTO {
 
     private TipoUsuario tipo;
     private Long clienteId;
     private String empresaCnpj;
     private String codigoAcesso;
-
-    private AuthRequestDTO() {}
 
     public static AuthRequestDTO cliente(Long id, String codigo) {
         AuthRequestDTO dto = new AuthRequestDTO();

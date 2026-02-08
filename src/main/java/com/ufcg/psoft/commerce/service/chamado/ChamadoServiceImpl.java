@@ -59,7 +59,7 @@ public class ChamadoServiceImpl implements ChamadoService{
     @Override
     public ChamadoResponseDTO criar(ChamadoPostPutRequestDTO dto, AuthRequestDTO auth) {
 
-        if (auth.getTipo() != TipoUsuario.CLIENTE) {
+        if (!auth.getTipo().equals(TipoUsuario.CLIENTE)) {
             throw new AcessoNegadoException();
         }
 
@@ -77,8 +77,6 @@ public class ChamadoServiceImpl implements ChamadoService{
         if(servico.getTipoPlano().equals(TipoPlano.PREMIUM) && !cliente.getPlanoAtual().equals(TipoPlano.PREMIUM)){
             throw new TipoPlanoIncorretoException();
         }
-        // regra: cliente premium x serviço -fazer depois
-        //validarPlano(cliente, servico);
 
         Chamado chamado = new Chamado();
 

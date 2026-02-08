@@ -4,16 +4,24 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ChamadoPostPutRequestDTO {
 
     @JsonProperty("servico")
     @NotBlank(message = "Servico obrigatorio")
     private long servico_id;
 
-    @JsonProperty("empresa_cnpj")
+    @JsonProperty("empresaCnpj")
     @NotBlank(message = "CNPJ da empresa obrigatorio")
-    private String empresa_cnpj;
+    private String empresaCnpj;
 
     @JsonProperty("endereco")
     private String endereco;
@@ -28,7 +36,7 @@ public class ChamadoPostPutRequestDTO {
     private long cliente_id;
 
     public String getEmpresaCnpj() {
-        return empresa_cnpj;
+        return empresaCnpj;
     }
 
     public String getEndereco() {

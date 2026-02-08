@@ -25,11 +25,12 @@ public class Pagamento {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private MetodoPagamento metodo;
+    private MeioPagamento metodo;
 
     @Column(nullable = false)
     private LocalDateTime confirmadoEm;
 
     public void setChamado(Chamado chamado) {
+        this.chamado = chamado;
     }
 }
