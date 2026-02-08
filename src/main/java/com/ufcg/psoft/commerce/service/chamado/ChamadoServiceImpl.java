@@ -4,16 +4,16 @@ import com.ufcg.psoft.commerce.dto.*;
 
 import com.ufcg.psoft.commerce.exception.AcessoNegadoException;
 import com.ufcg.psoft.commerce.exception.ChamadoNaoExisteException;
+import com.ufcg.psoft.commerce.exception.TipoPlanoIncorretoException;
 import com.ufcg.psoft.commerce.model.*;
-import com.ufcg.psoft.commerce.repository.ChamadoRepository;
-import com.ufcg.psoft.commerce.repository.ClienteRepository;
-import com.ufcg.psoft.commerce.repository.EmpresaRepository;
-import com.ufcg.psoft.commerce.repository.PagamentoRepository;
+import com.ufcg.psoft.commerce.repository.*;
 import com.ufcg.psoft.commerce.service.auth.AuthService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 
+import org.modelmapper.internal.bytebuddy.implementation.bytecode.Throw;
+import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +30,7 @@ public class ChamadoServiceImpl implements ChamadoService{
     private final ClienteRepository clienteRepository;
     private final EmpresaRepository empresaRepository;
     private final PagamentoRepository pagamentoRepository;
+    private final ServicoRepository servicoRepository;
 
     private void autorizarAcessoChamado(Chamado chamado, AuthRequestDTO auth) {
 
@@ -68,15 +69,21 @@ public class ChamadoServiceImpl implements ChamadoService{
         Cliente cliente = clienteRepository.findById(dto.getCliente_id())
                 .orElseThrow(() -> new EntityNotFoundException("Cliente não encontrado"));
 
+        Servico servico = servicoRepository.findById(dto.getServico_id())
+                .orElseThrow(() -> new EntityNotFoundException("Servico não encontrado"));
+
         authService.autenticar(auth);
 
+        if(servico.getTipoPlano().equals(TipoPlano.PREMIUM) && !cliente.getPlanoAtual().equals(TipoPlano.PREMIUM)){
+            throw new TipoPlanoIncorretoException();
+        }
         // regra: cliente premium x serviço -fazer depois
         //validarPlano(cliente, servico);
 
         Chamado chamado = new Chamado();
 
         chamado.setCliente(cliente);
-        chamado.setServico(dto.getServico());
+        chamado.setServico(servico);
         chamado.setEmpresa(empresa);
 
         if (dto.getEndereco() == null || dto.getEndereco().isBlank()) {

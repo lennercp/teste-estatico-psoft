@@ -9,7 +9,7 @@ public class ChamadoPostPutRequestDTO {
 
     @JsonProperty("servico")
     @NotBlank(message = "Servico obrigatorio")
-    private String servico;
+    private long servico_id;
 
     @JsonProperty("empresa_cnpj")
     @NotBlank(message = "CNPJ da empresa obrigatorio")
@@ -39,8 +39,8 @@ public class ChamadoPostPutRequestDTO {
         return cliente_id;
     }
 
-    public String getServico() {
-        return servico;
+    public long getServico_id() {
+        return servico_id;
     }
 
     public String getCodigoAcesso() {

@@ -21,8 +21,9 @@ public class Chamado {
     private Long id;
 
     @JsonProperty("servico")
-    @Column(nullable = false)
-    private String servico;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "servico_id", referencedColumnName = "id", nullable = false)
+    private Servico servico;
 
     @JsonProperty("endereco")
     @Column(nullable = false)

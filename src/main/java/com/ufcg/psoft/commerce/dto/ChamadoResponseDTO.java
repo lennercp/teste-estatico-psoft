@@ -27,7 +27,7 @@ public class ChamadoResponseDTO {
 
     @JsonProperty("servico")
     @NotBlank(message = "Servico obrigatorio")
-    private String servico;
+    private long servico_id;
 
     @JsonProperty("empresa_cnpj")
     @NotBlank(message = "CNPJ da empresa obrigatorio")
@@ -43,7 +43,7 @@ public class ChamadoResponseDTO {
 
     public ChamadoResponseDTO(Chamado chamado) {
         this.id = chamado.getId();
-        this.servico = chamado.getServico();
+        this.servico_id = chamado.getServico().getId();
         this.empresa_cnpj = chamado.getEmpresa().getCnpj();
         this.endereco = chamado.getEndereco();
         this.cliente_id = chamado.getCliente().getId();
