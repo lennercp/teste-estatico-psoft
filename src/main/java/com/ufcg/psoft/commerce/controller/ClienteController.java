@@ -4,9 +4,13 @@ import com.ufcg.psoft.commerce.dto.ClientePatchRequestDTO;
 import com.ufcg.psoft.commerce.dto.ClientePostPutRequestDTO;
 import com.ufcg.psoft.commerce.service.cliente.ClienteService;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import com.ufcg.psoft.commerce.dto.ServicoResponseDTO;
+import com.ufcg.psoft.commerce.model.NivelUrgencia;
+import com.ufcg.psoft.commerce.model.TipoServico;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -87,6 +91,29 @@ public class ClienteController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(clienteService.novoCicloCobranca(id));
+    }
+
+    @GetMapping("/{id}/servicos")
+    public ResponseEntity<List<ServicoResponseDTO>> listarServicosDoCatalogo(
+            @PathVariable("id") Long clienteId,
+            @RequestParam("codigoAcesso") String codigoAcesso,
+            @RequestParam(value = "tipoServico", required = false) TipoServico tipoServico,
+            @RequestParam(value = "nivelUrgencia", required = false) NivelUrgencia nivelUrgencia,
+            @RequestParam(value = "empresaCnpj", required = false) String empresaCnpj,
+            @RequestParam(value = "precoMin", required = false) Double precoMin,
+            @RequestParam(value = "precoMax", required = false) Double precoMax
+    ) {
+        List<ServicoResponseDTO> servicos = clienteService.listarServicosDisponiveis(
+                clienteId,
+                codigoAcesso,
+                tipoServico,
+                nivelUrgencia,
+                empresaCnpj,
+                precoMin,
+                precoMax
+        );
+
+        return ResponseEntity.ok(servicos);
     }
 
 }
