@@ -1,9 +1,9 @@
 package com.ufcg.psoft.commerce.controller;
 
+import com.ufcg.psoft.commerce.dto.ClientePatchRequestDTO;
 import com.ufcg.psoft.commerce.dto.ClientePostPutRequestDTO;
 import com.ufcg.psoft.commerce.service.cliente.ClienteService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -15,9 +15,11 @@ import org.springframework.web.bind.annotation.*;
         produces = MediaType.APPLICATION_JSON_VALUE
 )
 public class ClienteController {
+    private final ClienteService clienteService;
 
-    @Autowired
-    ClienteService clienteService;
+    public ClienteController(ClienteService clienteService){
+        this.clienteService = clienteService;
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> recuperarCliente(
@@ -68,4 +70,23 @@ public class ClienteController {
                 .status(HttpStatus.NO_CONTENT)
                 .body("");
     }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> alterarParcialCliente(
+            @PathVariable Long id,
+            @RequestParam String codigo,
+            @RequestBody @Valid ClientePatchRequestDTO ClientePatchRequestDTO) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(clienteService.alterarParcial(id, codigo, ClientePatchRequestDTO));
+    }
+
+    @PatchMapping("/{id}/proxCiclo")
+    public ResponseEntity<?> proxCicloCobrancaCliente(
+            @PathVariable Long id) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(clienteService.novoCicloCobranca(id));
+    }
+
 }
