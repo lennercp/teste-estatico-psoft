@@ -27,7 +27,7 @@ public class AuthServiceImpl implements AuthService{
     private final EmpresaRepository empresaRepository;
     private final AdminRepository adminRepository;
 
-    public AuthServiceImpl(ClienteRepository c, TecnicoRepository t, EmpresaRepository e) {
+    public AuthServiceImpl(ClienteRepository c, TecnicoRepository t, EmpresaRepository e, AdminRepository a) {
         this.clienteRepository = c;
         this.tecnicoRepository = t;
         this.empresaRepository = e;
