@@ -10,6 +10,14 @@ import com.ufcg.psoft.commerce.model.Cliente;
 import com.ufcg.psoft.commerce.model.TipoPlano;
 import com.ufcg.psoft.commerce.repository.ClienteRepository;
 import com.ufcg.psoft.commerce.repository.HistoricoAssinaturaRepository;
+import com.ufcg.psoft.commerce.model.Empresa;
+import com.ufcg.psoft.commerce.model.Servico;
+import com.ufcg.psoft.commerce.model.TipoServico;
+import com.ufcg.psoft.commerce.model.NivelUrgencia;
+import com.ufcg.psoft.commerce.repository.EmpresaRepository;
+import com.ufcg.psoft.commerce.repository.ServicoRepository;
+import com.ufcg.psoft.commerce.dto.ServicoResponseDTO;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -47,6 +55,12 @@ public class ClienteControllerTests {
 
     ClientePostPutRequestDTO clientePostPutRequestDTO;
 
+    @Autowired
+    EmpresaRepository empresaRepository;
+
+    @Autowired
+    ServicoRepository servicoRepository;
+
     @BeforeEach
     void setup() {
         // Object Mapper suporte para LocalDateTime
@@ -70,7 +84,9 @@ public class ClienteControllerTests {
     @AfterEach
     void tearDown() {
         historicoAssinaturaRepository.deleteAll();
+        servicoRepository.deleteAll();
         clienteRepository.deleteAll();
+        empresaRepository.deleteAll();
     }
 
     @Nested
@@ -698,6 +714,105 @@ public class ClienteControllerTests {
 
             // Assert
             assertEquals("O cliente consultado nao existe!", resultado.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("Conjunto de casos de verificação de Catálogo de Serviços (US7)")
+    class ClienteCatalogoServicos {
+
+        private Empresa empresa;
+        private Servico servicoBasico;
+        private Servico servicoPremium;
+
+        @BeforeEach
+        void setupCatalogo() {
+            empresa = empresaRepository.save(Empresa.builder()
+                    .nomeFantasia("HomeFix Reparos") 
+                    .cnpj("12.345.678/0001-99")
+                    .codigoAcesso("123456")
+                    .endereco("Av. Comercial, 1000") 
+                    .build());
+
+            servicoBasico = servicoRepository.save(Servico.builder()
+                    .nome("Troca de Lampada")
+                    .descricao("Troca simples")
+                    .precoBase(50.0)
+                    .tipo(TipoServico.ELETRICA) 
+                    .nivelUrgencia(NivelUrgencia.NORMAL)
+                    .tipoPlano(TipoPlano.BASICO) 
+                    .duracaoEstimada(1)
+                    .ativo(true)
+                    .empresa(empresa)
+                    .build());
+
+            servicoPremium = servicoRepository.save(Servico.builder()
+                    .nome("Instalação Industrial")
+                    .descricao("Serviço complexo")
+                    .precoBase(500.0)
+                    .tipo(TipoServico.ELETRICA)
+                    .nivelUrgencia(NivelUrgencia.URGENTE) 
+                    .tipoPlano(TipoPlano.PREMIUM)
+                    .duracaoEstimada(5)
+                    .ativo(true)
+                    .empresa(empresa)
+                    .build());
+        }
+
+        @Test
+        @DisplayName("Cliente BASICO deve ver apenas serviços básicos")
+        void quandoClienteBasicoConsultaCatalogo() throws Exception {
+            
+            String responseJson = driver.perform(get(URI_CLIENTES + "/" + cliente.getId() + "/servicos")
+                            .param("codigoAcesso", cliente.getCodigo())
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk()) 
+                    .andReturn().getResponse().getContentAsString();
+
+            List<ServicoResponseDTO> resultado = objectMapper.readValue(responseJson, new TypeReference<>() {});
+
+            assertAll(
+                    () -> assertEquals(1, resultado.size()), 
+                    () -> assertEquals("Troca de Lampada", resultado.get(0).getNome())
+            );
+        }
+
+        @Test
+        @DisplayName("Cliente PREMIUM deve ver todos os serviços")
+        void quandoClientePremiumConsultaCatalogo() throws Exception {
+            cliente.setPlanoAtual(TipoPlano.PREMIUM);
+            clienteRepository.save(cliente);
+
+            String responseJson = driver.perform(get(URI_CLIENTES + "/" + cliente.getId() + "/servicos")
+                            .param("codigoAcesso", cliente.getCodigo())
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+
+            List<ServicoResponseDTO> resultado = objectMapper.readValue(responseJson, new TypeReference<>() {});
+
+            assertAll(
+                    () -> assertEquals(2, resultado.size()) 
+            );
+        }
+
+        @Test
+        @DisplayName("Deve filtrar serviços por preço máximo")
+        void quandoFiltrarPorPrecoMaximo() throws Exception {
+            cliente.setPlanoAtual(TipoPlano.PREMIUM);
+            clienteRepository.save(cliente);
+
+            String responseJson = driver.perform(get(URI_CLIENTES + "/" + cliente.getId() + "/servicos")
+                            .param("codigoAcesso", cliente.getCodigo())
+                            .param("precoMax", "100.0") 
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+
+            List<ServicoResponseDTO> resultado = objectMapper.readValue(responseJson, new TypeReference<>() {});
+
+            assertEquals(1, resultado.size());
+            assertEquals("Troca de Lampada", resultado.get(0).getNome()); 
         }
     }
 
