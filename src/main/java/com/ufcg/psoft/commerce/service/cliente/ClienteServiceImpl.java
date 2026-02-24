@@ -2,16 +2,24 @@ package com.ufcg.psoft.commerce.service.cliente;
 
 import com.ufcg.psoft.commerce.dto.ClientePatchRequestDTO;
 import com.ufcg.psoft.commerce.exception.ClienteNaoExisteException;
+import com.ufcg.psoft.commerce.exception.CodigoDeAcessoInvalidoException;
 import com.ufcg.psoft.commerce.model.HistoricoAssinatura;
 import com.ufcg.psoft.commerce.repository.ClienteRepository;
 import com.ufcg.psoft.commerce.dto.ClientePostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.ClienteResponseDTO;
+import com.ufcg.psoft.commerce.dto.ServicoResponseDTO;
 import com.ufcg.psoft.commerce.model.Cliente;
 import com.ufcg.psoft.commerce.repository.HistoricoAssinaturaRepository;
 import com.ufcg.psoft.commerce.service.auth.AuthService;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import com.ufcg.psoft.commerce.repository.ServicoRepository;
+import com.ufcg.psoft.commerce.model.TipoPlano;
+import com.ufcg.psoft.commerce.model.TipoServico;
+import com.ufcg.psoft.commerce.model.NivelUrgencia;
+import com.ufcg.psoft.commerce.model.Servico;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,15 +30,18 @@ public class ClienteServiceImpl implements ClienteService {
     private final HistoricoAssinaturaRepository historicoAssinaturaRepository;
     private final ModelMapper modelMapper;
     private final AuthService authService;
+    private final ServicoRepository servicoRepository;
 
     public ClienteServiceImpl(ClienteRepository clienteRepository,
                               ModelMapper modelMapper,
                               AuthService authService,
-                              HistoricoAssinaturaRepository historicoAssinaturaRepository) {
+                              HistoricoAssinaturaRepository historicoAssinaturaRepository,
+                              ServicoRepository servicoRepository) {
         this.clienteRepository = clienteRepository;
         this.modelMapper = modelMapper;
         this.authService = authService;
         this.historicoAssinaturaRepository = historicoAssinaturaRepository;
+        this.servicoRepository = servicoRepository;
     }
 
     @Override
@@ -122,4 +133,45 @@ public class ClienteServiceImpl implements ClienteService {
         Cliente cliente = clienteRepository.findById(id).orElseThrow(ClienteNaoExisteException::new);
         return new ClienteResponseDTO(cliente);
     }
+
+    @Override
+    public List<ServicoResponseDTO> listarServicosDisponiveis(
+            Long clienteId,
+            String codigoAcesso,
+            TipoServico tipoServico,
+            NivelUrgencia nivelUrgencia,
+            String empresaCnpj,
+            Double precoMin,
+            Double precoMax) {
+
+        Cliente cliente = clienteRepository.findById(clienteId)
+                .orElseThrow(ClienteNaoExisteException::new);
+
+        if (!cliente.getCodigo().equals(codigoAcesso)) {
+            throw new CodigoDeAcessoInvalidoException();
+        }
+
+        List<TipoPlano> planosPermitidos;
+        
+        if (cliente.getPlanoAtual().equals(TipoPlano.PREMIUM)) {
+            planosPermitidos = Arrays.asList(TipoPlano.BASICO, TipoPlano.PREMIUM, TipoPlano.AMBOS);
+        } else {
+            planosPermitidos = Arrays.asList(TipoPlano.BASICO, TipoPlano.AMBOS);
+        }
+
+        List<Servico> servicosEncontrados = servicoRepository.buscarComFiltros(
+                planosPermitidos,
+                tipoServico,
+                nivelUrgencia,
+                empresaCnpj,
+                precoMin,
+                precoMax
+        );
+
+        return servicosEncontrados.stream()
+                .map(servico -> modelMapper.map(servico, ServicoResponseDTO.class))
+                .collect(Collectors.toList());
+    }
+
+    
 }

@@ -13,31 +13,32 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Cliente {
+public class Chamado {
 
     @JsonProperty("id")
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    @Column(nullable = false)
     private Long id;
 
-    @JsonProperty("nome")
-    @Column(nullable = false)
-    private String nome;
+    @JsonProperty("servico")
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "servico_id", referencedColumnName = "id", nullable = false)
+    private Servico servico;
 
     @JsonProperty("endereco")
     @Column(nullable = false)
     private String endereco;
 
-    @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private TipoPlano planoAtual;
+    @JsonProperty("empresa_cnpj")
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "empresa_cnpj", referencedColumnName = "cnpj", nullable = false)
+    private Empresa empresa;
 
-    @Column()
-    @Enumerated(EnumType.STRING)
-    private TipoPlano planoAgendado;
-
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "cliente_id")
     @JsonIgnore
-    @Column(nullable = false)
-    private String codigo;
+    private Cliente cliente;
+
+    @OneToOne(mappedBy = "chamado")
+    private Pagamento pagamento;
 }

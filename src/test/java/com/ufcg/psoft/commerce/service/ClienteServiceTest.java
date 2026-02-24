@@ -16,10 +16,18 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.modelmapper.ModelMapper;
 
+import com.ufcg.psoft.commerce.dto.ServicoResponseDTO;
+import com.ufcg.psoft.commerce.exception.CodigoDeAcessoInvalidoException;
+import com.ufcg.psoft.commerce.model.Servico;
+import com.ufcg.psoft.commerce.repository.ServicoRepository;
+import java.util.Collections;
+import java.util.List;
+
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -31,9 +39,11 @@ class ClienteServiceTest {
     @Mock
     private HistoricoAssinaturaRepository historicoAssinaturaRepository;
 
-
     @Mock
     private ModelMapper modelMapper;
+
+    @Mock
+    private ServicoRepository servicoRepository;
 
     @InjectMocks
     private ClienteServiceImpl clienteService;
@@ -92,4 +102,61 @@ class ClienteServiceTest {
             verify(historicoAssinaturaRepository, never()).save(any(HistoricoAssinatura.class));
         }
     }
+
+    @Nested
+    @DisplayName("Conjunto de casos de verificação de listagem de serviços (US7)")
+    class ClienteVerificacaoListarServicos {
+
+        @Test
+        @DisplayName("Deve buscar serviços com filtro de plano BASICO quando cliente é BASICO")
+        void quandoClienteBasicoBuscaServicos() {
+            cliente.setPlanoAtual(TipoPlano.BASICO);
+            
+            when(clienteRepository.findById(cliente.getId())).thenReturn(Optional.of(cliente));
+            when(servicoRepository.buscarComFiltros(anyList(), any(), any(), any(), any(), any()))
+                    .thenReturn(Collections.emptyList());
+
+            clienteService.listarServicosDisponiveis(cliente.getId(), cliente.getCodigo(), null, null, null, null, null);
+
+            List<TipoPlano> planosEsperados = List.of(TipoPlano.BASICO, TipoPlano.AMBOS);
+            
+            verify(servicoRepository).buscarComFiltros(
+                    eq(planosEsperados),
+                    any(), any(), any(), any(), any()
+            );
+        }
+
+        @Test
+        @DisplayName("Deve buscar todos os planos quando cliente é PREMIUM")
+        void quandoClientePremiumBuscaServicos() {
+            cliente.setPlanoAtual(TipoPlano.PREMIUM);
+            
+            when(clienteRepository.findById(cliente.getId())).thenReturn(Optional.of(cliente));
+            when(servicoRepository.buscarComFiltros(anyList(), any(), any(), any(), any(), any()))
+                    .thenReturn(Collections.emptyList());
+
+            clienteService.listarServicosDisponiveis(cliente.getId(), cliente.getCodigo(), null, null, null, null, null);
+
+            List<TipoPlano> planosEsperados = List.of(TipoPlano.BASICO, TipoPlano.PREMIUM, TipoPlano.AMBOS);
+            
+            verify(servicoRepository).buscarComFiltros(
+                    eq(planosEsperados),
+                    any(), any(), any(), any(), any()
+            );
+        }
+
+        @Test
+        @DisplayName("Deve lançar erro se código de acesso for inválido")
+        void quandoCodigoAcessoInvalido() {
+            when(clienteRepository.findById(cliente.getId())).thenReturn(Optional.of(cliente));
+
+            org.junit.jupiter.api.Assertions.assertThrows(CodigoDeAcessoInvalidoException.class, () -> {
+                clienteService.listarServicosDisponiveis(cliente.getId(), "CODIGO_ERRADO", null, null, null, null, null);
+            });
+            
+            verify(servicoRepository, never()).buscarComFiltros(any(), any(), any(), any(), any(), any());
+        }
+    }
+
+
 }

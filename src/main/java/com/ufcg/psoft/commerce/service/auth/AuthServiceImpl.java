@@ -1,5 +1,6 @@
 package com.ufcg.psoft.commerce.service.auth;
 
+import com.ufcg.psoft.commerce.dto.AuthRequestDTO;
 import com.ufcg.psoft.commerce.exception.AdminSenhaInvalidaException;
 
 import com.ufcg.psoft.commerce.exception.AdminNaoExisteException;
@@ -7,33 +8,24 @@ import com.ufcg.psoft.commerce.exception.ClienteNaoExisteException;
 import com.ufcg.psoft.commerce.exception.TecnicoNaoExisteException;
 import com.ufcg.psoft.commerce.exception.CodigoDeAcessoInvalidoException;
 import com.ufcg.psoft.commerce.exception.EmpresaNaoExisteException;
-import com.ufcg.psoft.commerce.model.Admin;
-import com.ufcg.psoft.commerce.model.Cliente;
-import com.ufcg.psoft.commerce.model.Empresa;
+import com.ufcg.psoft.commerce.model.*;
 import com.ufcg.psoft.commerce.repository.AdminRepository;
-import com.ufcg.psoft.commerce.model.Tecnico;
 import com.ufcg.psoft.commerce.repository.ClienteRepository;
 import com.ufcg.psoft.commerce.repository.TecnicoRepository;
 import com.ufcg.psoft.commerce.model.Empresa;
 import com.ufcg.psoft.commerce.repository.EmpresaRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 
 @Service
+@RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService{
 
     private final ClienteRepository clienteRepository;
     private final TecnicoRepository tecnicoRepository;
     private final EmpresaRepository empresaRepository;
     private final AdminRepository adminRepository;
-
-    public AuthServiceImpl(ClienteRepository c, TecnicoRepository t, EmpresaRepository e) {
-        this.clienteRepository = c;
-        this.tecnicoRepository = t;
-        this.empresaRepository = e;
-        this.adminRepository = a;
-    }
-
 
     @Override
     public void autenticarCliente(Long id, String codigoAcesso) {
@@ -71,6 +63,17 @@ public class AuthServiceImpl implements AuthService{
 
         if (!admin.getSenha().equals(senha) || 1 != id) {
             throw new AdminSenhaInvalidaException();
+        }
+    }
+
+    @Override
+    public void autenticar(AuthRequestDTO auth) {
+        switch (auth.getTipo()) {
+            case ADMIN -> autenticarAdmin(1L, auth.getCodigoAcesso());
+            case CLIENTE ->
+                    autenticarCliente(auth.getClienteId(), auth.getCodigoAcesso());
+            case EMPRESA ->
+                    autenticarEmpresa(auth.getEmpresaCnpj(), auth.getCodigoAcesso());
         }
     }
 }
