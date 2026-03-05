@@ -3,6 +3,7 @@ package com.ufcg.psoft.commerce.service.tecnico;
 import com.ufcg.psoft.commerce.dto.TecnicoPostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.TecnicoResponseDTO;
 import com.ufcg.psoft.commerce.exception.TecnicoNaoExisteException;
+import com.ufcg.psoft.commerce.model.DisponibilidadeStatus;
 import com.ufcg.psoft.commerce.model.Empresa;
 import com.ufcg.psoft.commerce.model.Tecnico;
 import com.ufcg.psoft.commerce.repository.TecnicoRepository;
@@ -10,6 +11,7 @@ import com.ufcg.psoft.commerce.service.auth.AuthService;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,6 +33,14 @@ public class TecnicoServiceImpl implements TecnicoService {
     @Override
     public TecnicoResponseDTO criar(TecnicoPostPutRequestDTO tecnicoDTO) {
         Tecnico tecnico = modelMapper.map(tecnicoDTO, Tecnico.class);
+
+        if (tecnico.getDisponibilidade() == null) {
+            tecnico.setDisponibilidade(DisponibilidadeStatus.DESCANSO);
+        }
+        if (tecnico.getDisponibilidadeAtualizadaEm() == null) {
+            tecnico.setDisponibilidadeAtualizadaEm(LocalDateTime.now());
+        }
+
         tecnicoRepository.save(tecnico);
         return modelMapper.map(tecnico, TecnicoResponseDTO.class);
     }
@@ -55,11 +65,17 @@ public class TecnicoServiceImpl implements TecnicoService {
         authService.autenticarTecnico(id, codigoAcesso);
         Tecnico tecnico = tecnicoRepository.findById(id)
                 .orElseThrow(TecnicoNaoExisteException::new);
+
+        DisponibilidadeStatus disponibilidadeAtual =
+                tecnico.getDisponibilidade();
+
         modelMapper.map(tecnicoDTO, tecnico);
-        tecnico.setId(id);
+        // impede alteração via PUT
+        tecnico.setDisponibilidade(disponibilidadeAtual);
         tecnicoRepository.save(tecnico);
-        
-        return modelMapper.map(tecnico, TecnicoResponseDTO.class);
+
+        return modelMapper.map(tecnico,
+                TecnicoResponseDTO.class);
     }
 
     @Override
@@ -89,4 +105,24 @@ public class TecnicoServiceImpl implements TecnicoService {
 
         tecnicoRepository.save(tecnico);
     }
+
+    @Override
+    public TecnicoResponseDTO alterarDisponibilidade(
+            Long id,
+            String codigoAcesso,
+            DisponibilidadeStatus novaDisponibilidade) {
+
+        authService.autenticarTecnico(id, codigoAcesso);
+
+        Tecnico tecnico = tecnicoRepository.findById(id)
+                .orElseThrow(TecnicoNaoExisteException::new);
+
+        tecnico.alterarDisponibilidade(novaDisponibilidade);
+
+        tecnicoRepository.save(tecnico);
+
+        return modelMapper.map(tecnico, TecnicoResponseDTO.class);
+    }
+
+
 }

@@ -1,7 +1,6 @@
 package com.ufcg.psoft.commerce.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,8 +16,13 @@ public class ChamadoPatchRequestDTO {
     @JsonProperty("endereco")
     private String endereco;
 
+    @JsonProperty("tecnico_id")
+    private Long tecnicoId; // Para quando a empresa/admin for atribuir um técnico
+
+    @JsonProperty("status_acao")
+    private String statusAcao; //"AVANCAR", "CANCELAR"
+
     @JsonProperty("codigo")
-    @NotNull(message = "Codigo de acesso obrigatorio")
     @Pattern(
             regexp = "^\\d{6}$",
             message = "Codigo de acesso deve ter exatamente 6 digitos numericos"
@@ -32,4 +36,5 @@ public class ChamadoPatchRequestDTO {
     public String getCodigo() {
         return codigo;
     }
+
 }

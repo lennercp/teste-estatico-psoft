@@ -1,8 +1,10 @@
 package com.ufcg.psoft.commerce.service;
 
 import com.ufcg.psoft.commerce.dto.*;
+import com.ufcg.psoft.commerce.events.ChamadoEmAtendimentoEvent;
 import com.ufcg.psoft.commerce.exception.*;
 import com.ufcg.psoft.commerce.model.*;
+import com.ufcg.psoft.commerce.model.state.StatusChamado;
 import com.ufcg.psoft.commerce.repository.*;
 import com.ufcg.psoft.commerce.service.auth.AuthService;
 
@@ -15,6 +17,7 @@ import org.modelmapper.ModelMapper;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.Optional;
 
@@ -27,11 +30,13 @@ class ChamadoServiceImplTest {
     @InjectMocks
     private ChamadoServiceImpl service;
 
+    @Mock  private ApplicationEventPublisher eventPublisher;
     @Mock private ChamadoRepository chamadoRepository;
     @Mock private ClienteRepository clienteRepository;
     @Mock private EmpresaRepository empresaRepository;
     @Mock private ServicoRepository servicoRepository;
     @Mock private PagamentoRepository pagamentoRepository;
+    @Mock private TecnicoRepository tecnicoRepository;
     @Mock private AuthService authService;
     @Mock private ModelMapper modelMapper;
 
@@ -56,6 +61,7 @@ class ChamadoServiceImplTest {
                 .id(10L)
                 .tipoPlano(TipoPlano.BASICO)
                 .empresa(empresa)
+                .ativo(true)
                 .build();
 
         chamado = Chamado.builder()
@@ -63,6 +69,7 @@ class ChamadoServiceImplTest {
                 .cliente(cliente)
                 .empresa(empresa)
                 .servico(servico)
+                .status(StatusChamado.RECEBIDO)
                 .endereco("Rua A")
                 .build();
     }
@@ -70,9 +77,9 @@ class ChamadoServiceImplTest {
     @Test
     void criarSucesso() {
         ChamadoPostPutRequestDTO dto = ChamadoPostPutRequestDTO.builder()
-                .cliente_id(1L)
+                .clienteId(1L)
                 .empresaCnpj("111")
-                .servico_id(10L)
+                .servicoId(10L)
                 .endereco("X")
                 .build();
 
@@ -103,7 +110,7 @@ class ChamadoServiceImplTest {
         servico.setTipoPlano(TipoPlano.PREMIUM);
 
         ChamadoPostPutRequestDTO dto = ChamadoPostPutRequestDTO.builder()
-                .cliente_id(1L).empresaCnpj("111").servico_id(10L).build();
+                .clienteId(1L).empresaCnpj("111").servicoId(10L).build();
 
         AuthRequestDTO auth = AuthRequestDTO.cliente(1L, "123");
 
@@ -190,7 +197,7 @@ class ChamadoServiceImplTest {
         ChamadoPagamentoRequestDTO dto = new ChamadoPagamentoRequestDTO();
         dto.setMetodo(MeioPagamento.PIX);
 
-        assertThrows(IllegalStateException.class,
+        assertThrows(ChamadoJaPossuiPagamentoConfirmadoException.class,
                 () -> service.confirmarPagamento(100L, dto, auth));
     }
 
@@ -205,5 +212,185 @@ class ChamadoServiceImplTest {
 
         assertThrows(AcessoNegadoException.class,
                 () -> service.confirmarPagamento(100L, dto, auth));
+    }
+
+
+    // --- NOVOS TESTES: STATE PATTERN E TRANSIÇÕES ---
+
+    @Test
+    void atualizarAvancarParaAnaliseSucesso() {
+        AuthRequestDTO auth = AuthRequestDTO.empresa("111", "123");
+        chamado.setStatus(StatusChamado.RECEBIDO);
+
+        when(chamadoRepository.findById(100L)).thenReturn(Optional.of(chamado));
+
+        ChamadoPatchRequestDTO dto = ChamadoPatchRequestDTO.builder()
+                .statusAcao("AVANCAR")
+                .build();
+
+        service.atualizar(100L, dto, auth);
+
+        assertEquals(StatusChamado.EM_ANALISE, chamado.getStatus());
+        verify(chamadoRepository).save(chamado);
+    }
+
+    @Test
+    void atualizarAvancarParaAtendimentoSucessoComTecnico() {
+        AuthRequestDTO auth = AuthRequestDTO.empresa("111", "123");
+        chamado.setStatus(StatusChamado.AGUARDANDO_TECNICO);
+        Tecnico tecnico = Tecnico.builder().id(50L).build();
+
+        when(chamadoRepository.findById(100L)).thenReturn(Optional.of(chamado));
+        when(tecnicoRepository.findById(50L)).thenReturn(Optional.of(tecnico));
+
+        ChamadoPatchRequestDTO dto = ChamadoPatchRequestDTO.builder()
+                .statusAcao("AVANCAR")
+                .tecnicoId(50L)
+                .build();
+
+        service.atualizar(100L, dto, auth);
+
+        assertEquals(StatusChamado.ATENDIMENTO, chamado.getStatus());
+        assertEquals(tecnico, chamado.getTecnico());
+    }
+
+    @Test
+    void atualizarAvancarParaAtendimentoErroSemTecnico() {
+        AuthRequestDTO auth = AuthRequestDTO.empresa("111", "123");
+        chamado.setStatus(StatusChamado.AGUARDANDO_TECNICO);
+
+        when(chamadoRepository.findById(100L)).thenReturn(Optional.of(chamado));
+
+        ChamadoPatchRequestDTO dto = ChamadoPatchRequestDTO.builder()
+                .statusAcao("AVANCAR")
+                .tecnicoId(null)
+                .build();
+
+        assertThrows(TecnicoNaoInformadoException.class, () -> service.atualizar(100L, dto, auth));
+    }
+
+    //  CANCELAMENTO (DELETAR)
+
+    @Test
+    void deletarSucessoQuandoAindaNaoAtendimento() {
+        AuthRequestDTO auth = AuthRequestDTO.cliente(1L, "123");
+        chamado.setStatus(StatusChamado.RECEBIDO);
+
+        when(chamadoRepository.findById(100L)).thenReturn(Optional.of(chamado));
+
+        service.deletar(100L, auth);
+
+        verify(chamadoRepository).delete(chamado);
+    }
+
+    @Test
+    void deletarErroQuandoEmAtendimento() {
+        AuthRequestDTO auth = AuthRequestDTO.cliente(1L, "123");
+        chamado.setStatus(StatusChamado.ATENDIMENTO); // Estado que PROIBE cancelar
+
+        when(chamadoRepository.findById(100L)).thenReturn(Optional.of(chamado));
+        assertThrows(ClienteNaoAutorizadoCancelarChamadoException.class,
+                () -> service.deletar(100L, auth));
+    }
+
+    @Test
+    void deletarErroClienteNaoDono() {
+        AuthRequestDTO auth = AuthRequestDTO.cliente(999L, "123"); // Outro cliente
+        chamado.setStatus(StatusChamado.RECEBIDO);
+
+        when(chamadoRepository.findById(100L)).thenReturn(Optional.of(chamado));
+
+        assertThrows(AcessoNegadoException.class, () -> service.deletar(100L, auth));
+    }
+
+    @Test
+    void cancelarSucesso() {
+        // Arrange
+        AuthRequestDTO auth = AuthRequestDTO.cliente(1L, "123");
+        chamado.setStatus(StatusChamado.RECEBIDO); // Status que permite cancelamento
+
+        when(chamadoRepository.findById(100L)).thenReturn(Optional.of(chamado));
+
+        service.deletar(100L, auth);
+        verify(chamadoRepository).delete(chamado);
+    }
+
+    @Test
+    void cancelarErroQuandoEmAtendimento() {
+
+        AuthRequestDTO auth = AuthRequestDTO.cliente(1L, "123");
+        chamado.setStatus(StatusChamado.ATENDIMENTO); // Status que PROIBE cancelamento
+
+        when(chamadoRepository.findById(100L)).thenReturn(Optional.of(chamado));
+
+        assertThrows(ClienteNaoAutorizadoCancelarChamadoException.class, () -> {
+            service.deletar(100L, auth);
+        });
+
+        verify(chamadoRepository, never()).delete(any());
+    }
+
+    @Test
+    void cancelarErroClienteDiferente() {
+
+        Long outroClienteId = 999L;
+        AuthRequestDTO auth = AuthRequestDTO.cliente(outroClienteId, "123");
+
+        when(chamadoRepository.findById(100L)).thenReturn(Optional.of(chamado));
+        assertThrows(AcessoNegadoException.class, () -> {
+            service.deletar(100L, auth);
+        });
+
+        verify(chamadoRepository, never()).delete(any());
+    }
+
+    @Test
+    void cancelarErroQuandoConcluido() {
+
+        AuthRequestDTO auth = AuthRequestDTO.cliente(1L, "123");
+        chamado.setStatus(StatusChamado.CONCLUIDO);
+
+        when(chamadoRepository.findById(100L)).thenReturn(Optional.of(chamado));
+
+        assertThrows(ChamadoConcluidoNaoCanceladoException.class, () -> {
+            service.deletar(100L, auth);
+        });
+    }
+
+    @Test
+    void devePublicarEventoQuandoEntrarEmAtendimento() {
+
+        Chamado chamado = new Chamado();
+        chamado.setId(1L);
+        chamado.setStatus(StatusChamado.AGUARDANDO_TECNICO);
+
+        Cliente cliente = new Cliente();
+        cliente.setId(10L);
+        chamado.setCliente(cliente);
+
+        ChamadoPatchRequestDTO dto = new ChamadoPatchRequestDTO();
+        dto.setStatusAcao("AVANCAR");
+        dto.setTecnicoId(1L);
+
+        AuthRequestDTO auth = AuthRequestDTO.cliente(10L, "123");
+
+        when(chamadoRepository.findById(1L))
+                .thenReturn(Optional.of(chamado));
+
+        when(tecnicoRepository.findById(1L))
+                .thenReturn(Optional.of(new Tecnico()));
+
+        when(chamadoRepository.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(modelMapper.map(any(), eq(ChamadoResponseDTO.class)))
+                .thenReturn(new ChamadoResponseDTO());
+
+        doNothing().when(authService).autenticar(any());
+
+        service.atualizar(1L, dto, auth);
+
+        verify(eventPublisher)
+                .publishEvent(any(ChamadoEmAtendimentoEvent.class));
     }
 }

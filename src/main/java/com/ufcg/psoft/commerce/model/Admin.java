@@ -16,6 +16,7 @@ public class Admin {
 
     @Id
     @Column(nullable = false, unique = true)
+    @Builder.Default
     private Long id = 1L;
 
     @Column(nullable = false)

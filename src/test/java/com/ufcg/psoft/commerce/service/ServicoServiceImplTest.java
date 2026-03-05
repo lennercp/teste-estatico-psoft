@@ -8,6 +8,7 @@ import com.ufcg.psoft.commerce.exception.ServicoJaExisteException;
 import com.ufcg.psoft.commerce.exception.ServicoNaoExisteException;
 import com.ufcg.psoft.commerce.model.*;
 import com.ufcg.psoft.commerce.repository.EmpresaRepository;
+import com.ufcg.psoft.commerce.repository.InteresseRepository;
 import com.ufcg.psoft.commerce.repository.ServicoRepository;
 import com.ufcg.psoft.commerce.service.auth.AuthService;
 import com.ufcg.psoft.commerce.service.servico.ServicoServiceImpl;
@@ -19,9 +20,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
-
-
-import com.ufcg.psoft.commerce.model.Empresa;
 import org.junit.jupiter.api.*;
 
 
@@ -29,6 +27,9 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 
@@ -47,6 +48,9 @@ class ServicoServiceImplTest {
 
     @Mock
     AuthService authService;
+
+    @Mock
+    InteresseRepository interesseRepository;
 
     @InjectMocks
     ServicoServiceImpl servicoService;
@@ -331,5 +335,105 @@ class ServicoServiceImplTest {
         verify(servicoRepository, never()).delete(any());
     }
 
+    @Test
+    @DisplayName("Quando alteramos a disponibilidade para ativo, deve notificar priorizando Premium")
+    void quandoAlteramosDisponibilidadeAtivandoComInteresses() {
+        servico.setAtivo(false);
+        
+        Cliente clientePremium = Cliente.builder().nome("João").planoAtual(TipoPlano.PREMIUM).build();
+        Cliente clienteBasico = Cliente.builder().nome("Maria").planoAtual(TipoPlano.BASICO).build();
+
+        Interesse intBasico = new Interesse(clienteBasico, servico);
+        intBasico.setDataInteresse(java.time.LocalDateTime.now().minusDays(2)); 
+        
+        Interesse intPremium = new Interesse(clientePremium, servico);
+        intPremium.setDataInteresse(java.time.LocalDateTime.now().minusDays(1));
+
+        List<Interesse> interesses = new java.util.ArrayList<>(List.of(intBasico, intPremium));
+
+        doNothing().when(authService).autenticarEmpresa(CNPJ, CODIGO_VALIDO);
+        when(empresaRepository.findByCnpj(CNPJ)).thenReturn(Optional.of(empresa));
+        when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa)).thenReturn(Optional.of(servico));
+        when(interesseRepository.findByServicoAndNotificadoFalse(servico)).thenReturn(interesses);
+        when(modelMapper.map(servico, ServicoResponseDTO.class)).thenReturn(responseDTO);
+
+        servicoService.alterarDisponibilidade(CNPJ, CODIGO_VALIDO, SERVICO_ID, true);
+
+        assertTrue(servico.getAtivo());
+        
+        org.mockito.ArgumentCaptor<List> captor = org.mockito.ArgumentCaptor.forClass(List.class);
+        verify(interesseRepository).saveAll(captor.capture());
+        
+        List<Interesse> salvos = captor.getValue();
+        assertEquals(2, salvos.size());
+        
+        assertEquals(TipoPlano.PREMIUM, salvos.get(0).getCliente().getPlanoAtual());
+        assertTrue(salvos.get(0).isNotificado());
+        assertTrue(salvos.get(1).isNotificado());
+    }
+    
+    @Test
+    @DisplayName("Quando alteramos a disponibilidade, não deve notificar se já estava ativo")
+    void quandoAlteramosDisponibilidadeSemMudarEstado() {
+        servico.setAtivo(true); 
+        
+        doNothing().when(authService).autenticarEmpresa(CNPJ, CODIGO_VALIDO);
+        when(empresaRepository.findByCnpj(CNPJ)).thenReturn(Optional.of(empresa));
+        when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa)).thenReturn(Optional.of(servico));
+        when(modelMapper.map(servico, ServicoResponseDTO.class)).thenReturn(responseDTO);
+
+        servicoService.alterarDisponibilidade(CNPJ, CODIGO_VALIDO, SERVICO_ID, true); 
+
+        verify(interesseRepository, never()).findByServicoAndNotificadoFalse(any());
+        verify(interesseRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("Quando alteramos a disponibilidade para inativo, NÃO deve notificar ninguém")
+    void quandoAlteramosParaInativoNaoNotifica() {
+        servico.setAtivo(true); 
+        
+        doNothing().when(authService).autenticarEmpresa(CNPJ, CODIGO_VALIDO);
+        when(empresaRepository.findByCnpj(CNPJ)).thenReturn(Optional.of(empresa));
+        when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa)).thenReturn(Optional.of(servico));
+        when(modelMapper.map(servico, ServicoResponseDTO.class)).thenReturn(responseDTO);
+
+        servicoService.alterarDisponibilidade(CNPJ, CODIGO_VALIDO, SERVICO_ID, false); 
+
+        assertFalse(servico.getAtivo(), "O serviço deve ter ficado inativo");
+        
+        verify(interesseRepository, never()).findByServicoAndNotificadoFalse(any());
+        verify(interesseRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("Quando tentamos alterar disponibilidade de um serviço que não existe")
+    void quandoAlteramosDisponibilidadeServicoInexistente() {
+        doNothing().when(authService).autenticarEmpresa(CNPJ, CODIGO_VALIDO);
+        when(empresaRepository.findByCnpj(CNPJ)).thenReturn(Optional.of(empresa));
+        when(servicoRepository.findByIdAndEmpresa(999L, empresa)).thenReturn(Optional.empty()); 
+
+        assertThrows(ServicoNaoExisteException.class, 
+                () -> servicoService.alterarDisponibilidade(CNPJ, CODIGO_VALIDO, 999L, false));
+    }
+
+    @Test
+    @DisplayName("Quando ativamos um serviço, mas a fila de interessados está vazia")
+    void quandoAtivamosServicoComFilaVazia() {
+        // Arrange
+        servico.setAtivo(false); 
+        
+        doNothing().when(authService).autenticarEmpresa(CNPJ, CODIGO_VALIDO);
+        when(empresaRepository.findByCnpj(CNPJ)).thenReturn(Optional.of(empresa));
+        when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa)).thenReturn(Optional.of(servico));
+        
+        when(interesseRepository.findByServicoAndNotificadoFalse(servico)).thenReturn(new java.util.ArrayList<>());
+        when(modelMapper.map(servico, ServicoResponseDTO.class)).thenReturn(responseDTO);
+
+        servicoService.alterarDisponibilidade(CNPJ, CODIGO_VALIDO, SERVICO_ID, true);
+
+        assertTrue(servico.getAtivo());
+        verify(interesseRepository).saveAll(anyList()); 
+    }
 
 }

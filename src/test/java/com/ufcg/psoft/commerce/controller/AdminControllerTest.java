@@ -12,6 +12,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -19,11 +20,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
+
 @AutoConfigureMockMvc
 @DisplayName("Testes do controlador de Admin")
 public class AdminControllerTest {
 
-    final String URI_ADMINS = "/admins";
+    final String URI_ADMINS = "/admin";
 
     @Autowired
     MockMvc driver;
@@ -82,7 +84,7 @@ public class AdminControllerTest {
 
             adminRepository.save(Admin.builder()
                     .nome("Admin Existente")
-                    .senha("654321")
+                    .senha("123456")
                     .build()
             );
 
@@ -91,7 +93,7 @@ public class AdminControllerTest {
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(adminPostPutRequestDTO))
                     )
-                    .andExpect(status().isInternalServerError())
+                    .andExpect(status().isBadRequest())
                     .andDo(print());
         }
     }

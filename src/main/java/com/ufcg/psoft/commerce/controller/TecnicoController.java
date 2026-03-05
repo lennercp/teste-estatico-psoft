@@ -61,4 +61,18 @@ public class TecnicoController {
                 .status(HttpStatus.NO_CONTENT)
                 .build();
     }
+
+    @PatchMapping("/{id}/disponibilidade")
+    public ResponseEntity<TecnicoResponseDTO> alterarDisponibilidade(
+            @PathVariable Long id,
+            @RequestParam String codigoAcesso,
+            @RequestBody @Valid TecnicoPostPutRequestDTO dto) {
+
+        return ResponseEntity.ok(
+                tecnicoService.alterarDisponibilidade(
+                        id,
+                        codigoAcesso,
+                        dto.getDisponibilidade()));
+    }
+
 }

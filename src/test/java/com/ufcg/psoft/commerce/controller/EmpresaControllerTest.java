@@ -50,6 +50,7 @@ public class EmpresaControllerTest {
 
     @Autowired
     AdminRepository adminRepository;
+    @Autowired
     TecnicoRepository tecnicoRepository;
 
     ObjectMapper objectMapper = new ObjectMapper();
@@ -75,12 +76,11 @@ public class EmpresaControllerTest {
         );
 
         empresa = empresaRepository.save(Empresa.builder()
-                .cnpj("12345678910111")
-                .nomeFantasia("Empresa Teste LTDA")
-                .endereco("Rua das Empresas, 100")
-                .codigoAcesso("654321")
-                .build()
-        );
+                .nomeFantasia("Empresa X")
+                .cnpj("11111111111111")
+                .codigoAcesso("123456")
+                .endereco("Rua Empresa")
+                .build());
 
         empresaPostPutRequestDTO = EmpresaPostPutRequestDTO.builder()
                 .cnpj(empresa.getCnpj())
@@ -186,7 +186,7 @@ public class EmpresaControllerTest {
                     objectMapper.readValue(responseJsonString, EmpresaResponseDTO.class);
 
 
-            assertEquals("Empresa Teste LTDA", resultado.getNomeFantasia());
+            assertEquals("Empresa X", resultado.getNomeFantasia());
         }
 
 

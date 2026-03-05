@@ -2,27 +2,25 @@ package com.ufcg.psoft.commerce.service.chamado;
 
 import com.ufcg.psoft.commerce.dto.*;
 
-import com.ufcg.psoft.commerce.exception.AcessoNegadoException;
-import com.ufcg.psoft.commerce.exception.ChamadoNaoExisteException;
-import com.ufcg.psoft.commerce.exception.TipoPlanoIncorretoException;
+import com.ufcg.psoft.commerce.events.ChamadoEmAtendimentoEvent;
+import com.ufcg.psoft.commerce.exception.*;
 import com.ufcg.psoft.commerce.model.*;
+import com.ufcg.psoft.commerce.model.state.StatusChamado;
 import com.ufcg.psoft.commerce.repository.*;
 import com.ufcg.psoft.commerce.service.auth.AuthService;
-import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 
-import org.modelmapper.internal.bytebuddy.implementation.bytecode.Throw;
-import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
+import java.time.LocalDateTime;
+
+import org.modelmapper.ModelMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
-
 @Service
 @RequiredArgsConstructor
-public class ChamadoServiceImpl implements ChamadoService{
+public class ChamadoServiceImpl implements ChamadoService {
 
     private final ChamadoRepository chamadoRepository;
     private final ModelMapper modelMapper;
@@ -31,6 +29,8 @@ public class ChamadoServiceImpl implements ChamadoService{
     private final EmpresaRepository empresaRepository;
     private final PagamentoRepository pagamentoRepository;
     private final ServicoRepository servicoRepository;
+    private final TecnicoRepository tecnicoRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     private void autorizarAcessoChamado(Chamado chamado, AuthRequestDTO auth) {
 
@@ -45,54 +45,87 @@ public class ChamadoServiceImpl implements ChamadoService{
                     throw new AcessoNegadoException();
                 }
             }
-            case ADMIN -> {
+            case ADMIN ->
                 throw new AcessoNegadoException();
-            }
         }
-    }
-
-    private void atualizarCampos(Chamado chamado, ChamadoPatchRequestDTO dto) {
-        if (dto.getEndereco() != null)
-            chamado.setEndereco(dto.getEndereco());
     }
 
     @Override
+    @Transactional
     public ChamadoResponseDTO criar(ChamadoPostPutRequestDTO dto, AuthRequestDTO auth) {
-
         if (!auth.getTipo().equals(TipoUsuario.CLIENTE)) {
             throw new AcessoNegadoException();
         }
-
-        Empresa empresa = empresaRepository.findByCnpj(dto.getEmpresaCnpj())
-                .orElseThrow(() -> new EntityNotFoundException("Empresa não encontrada"));
-
-        Cliente cliente = clienteRepository.findById(dto.getCliente_id())
-                .orElseThrow(() -> new EntityNotFoundException("Cliente não encontrado"));
-
-        Servico servico = servicoRepository.findById(dto.getServico_id())
-                .orElseThrow(() -> new EntityNotFoundException("Servico não encontrado"));
-
         authService.autenticar(auth);
 
-        if(servico.getTipoPlano().equals(TipoPlano.PREMIUM) && !cliente.getPlanoAtual().equals(TipoPlano.PREMIUM)){
+        Empresa empresa = empresaRepository.findByCnpj(dto.getEmpresaCnpj())
+                .orElseThrow(EmpresaNaoExisteException::new);
+        Cliente cliente = clienteRepository.findById(dto.getClienteId())
+                .orElseThrow(ClienteNaoExisteException::new);
+        Servico servico = servicoRepository.findById(dto.getServicoId())
+                .orElseThrow(ServicoNaoExisteException::new);
+
+        if (servico.getTipoPlano().equals(TipoPlano.PREMIUM) && !cliente.getPlanoAtual().equals(TipoPlano.PREMIUM)) {
             throw new TipoPlanoIncorretoException();
         }
 
-        Chamado chamado = new Chamado();
+        if (Boolean.FALSE.equals(servico.getAtivo()))
+            throw new ServicoDisponivelException();
 
-        chamado.setCliente(cliente);
-        chamado.setServico(servico);
-        chamado.setEmpresa(empresa);
+        Chamado chamado = Chamado.builder()
+                .cliente(cliente)
+                .servico(servico)
+                .empresa(empresa)
+                .endereco(dto.getEndereco() == null || dto.getEndereco().isBlank() ? cliente.getEndereco()
+                        : dto.getEndereco())
+                .status(StatusChamado.RECEBIDO) // Estado inicial
+                .build();
 
-        if (dto.getEndereco() == null || dto.getEndereco().isBlank()) {
-            chamado.setEndereco(cliente.getEndereco());
-        } else {
-            chamado.setEndereco(dto.getEndereco());
+        return modelMapper.map(chamadoRepository.save(chamado), ChamadoResponseDTO.class);
+    }
+
+    private void avancarStatus(Chamado chamado, Long tecnicoId) {
+
+        if (chamado.getStatus() == StatusChamado.AGUARDANDO_TECNICO) {
+            throw new ChamadoBloqueadoParaAvancarStatus();
         }
 
-        chamadoRepository.save(chamado);
+        chamado.avancarStatus();
 
-        return modelMapper.map(chamado, ChamadoResponseDTO.class);
+        if (chamado.getStatus() == StatusChamado.ATENDIMENTO) {
+            eventPublisher.publishEvent(
+                    new ChamadoEmAtendimentoEvent(chamado));
+        }
+    }
+
+    private void cancelarStatus(Chamado chamado, Long clienteSolicitanteId) {
+        StatusChamado statusCancelado = (StatusChamado) chamado.getStatus().cancelar(
+                clienteSolicitanteId,
+                chamado.getCliente().getId());
+        chamado.setStatus(statusCancelado);
+    }
+
+    @Override
+    @Transactional
+    public ChamadoResponseDTO atualizar(long id, ChamadoPatchRequestDTO dto, AuthRequestDTO auth) {
+        Chamado chamado = chamadoRepository.findById(id).orElseThrow(ChamadoNaoExisteException::new);
+        authService.autenticar(auth);
+        autorizarAcessoChamado(chamado, auth);
+
+        if (dto.getEndereco() != null)
+            chamado.setEndereco(dto.getEndereco());
+
+        // Lógica de Transição de Estado (State Pattern)
+        if (dto.getStatusAcao() != null) {
+            String acao = dto.getStatusAcao().toUpperCase();
+            if (acao.equals("AVANCAR")) {
+                this.avancarStatus(chamado, dto.getTecnicoId());
+            } else if (acao.equals("CANCELAR")) {
+                this.cancelarStatus(chamado, auth.getClienteId());
+            }
+        }
+
+        return modelMapper.map(chamadoRepository.save(chamado), ChamadoResponseDTO.class);
     }
 
     @Override
@@ -108,34 +141,21 @@ public class ChamadoServiceImpl implements ChamadoService{
     }
 
     @Override
-    public ChamadoResponseDTO atualizar(long id, ChamadoPatchRequestDTO dto, AuthRequestDTO auth){
-
-        Chamado chamado = chamadoRepository.findById(id).orElseThrow(ChamadoNaoExisteException::new);
-
-        authService.autenticar(auth);
-
-        autorizarAcessoChamado(chamado, auth);
-
-        atualizarCampos(chamado, dto);
-
-        chamadoRepository.save(chamado);
-
-        return modelMapper.map(chamado, ChamadoResponseDTO.class);
-    }
-
-    @Override
+    @Transactional
     public ResponseEntity<Void> deletar(Long id, AuthRequestDTO auth) {
-        Chamado chamado = chamadoRepository.findById(id).orElseThrow(ChamadoNaoExisteException::new);
 
+        Chamado chamado = chamadoRepository.findById(id)
+                .orElseThrow(ChamadoNaoExisteException::new);
         authService.autenticar(auth);
-
         autorizarAcessoChamado(chamado, auth);
-
+        this.cancelarStatus(chamado, auth.getClienteId());
         chamadoRepository.delete(chamado);
+
         return ResponseEntity.noContent().build();
     }
 
     @Override
+    @Transactional
     public void confirmarPagamento(
             Long chamadoId,
             ChamadoPagamentoRequestDTO dto,
@@ -151,15 +171,16 @@ public class ChamadoServiceImpl implements ChamadoService{
         }
 
         autorizarAcessoChamado(chamado, auth);
-
         if (chamado.getPagamento() != null) {
-            throw new IllegalStateException("Chamado já possui pagamento confirmado");
+            throw new ChamadoJaPossuiPagamentoConfirmadoException();
         }
 
-        Pagamento pagamento = new Pagamento();
-        pagamento.setChamado(chamado);
-        pagamento.setMetodo(dto.getMetodo());
-        pagamento.setConfirmadoEm(LocalDateTime.now());
+        Pagamento pagamento = Pagamento.builder()
+                .chamado(chamado)
+                .metodo(dto.getMetodo())
+                .confirmadoEm(LocalDateTime.now())
+                .build();
+        chamado.setPagamento((pagamento));
 
         pagamentoRepository.save(pagamento);
     }

@@ -3,6 +3,7 @@ package com.ufcg.psoft.commerce.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.ufcg.psoft.commerce.dto.TecnicoPostPutRequestDTO;
+import com.ufcg.psoft.commerce.model.DisponibilidadeStatus;
 import com.ufcg.psoft.commerce.model.Tecnico;
 import com.ufcg.psoft.commerce.repository.TecnicoRepository;
 import org.junit.jupiter.api.*;
@@ -46,7 +47,7 @@ class TecnicoControllerTests {
                 .placaVeiculo("ABC-1234")
                 .tipoVeiculo("Carro")
                 .corVeiculo("Branco")
-                .codigoAcesso("123456") 
+                .codigoAcesso("123456")
                 .build();
     }
 
@@ -231,5 +232,103 @@ class TecnicoControllerTests {
             
             assertTrue(tecnicoRepository.findById(salvo.getId()).isPresent());
         }
+    }
+
+    @Nested
+    @DisplayName("Testes de Disponibilidade do Técnico")
+    class DisponibilidadeTecnico {
+
+        @Test
+        @DisplayName("Deve alterar disponibilidade para ATIVO")
+        void testAlterarDisponibilidadeSucesso() throws Exception {
+
+            Tecnico tecnico = tecnicoRepository.save(
+                    Tecnico.builder()
+                            .nomeCompleto("Teste")
+                            .especialidade("Eletricista")
+                            .placaVeiculo("AAA-1111")
+                            .tipoVeiculo("Carro")
+                            .corVeiculo("Branco")
+                            .codigoAcesso("123456")
+                            .build()
+            );
+
+            tecnicoDTO.setDisponibilidade(DisponibilidadeStatus.ATIVO);
+
+            String json =
+                    objectMapper.writeValueAsString(tecnicoDTO);
+
+            driver.perform(
+                            patch(URI_TECNICOS + "/" +
+                                    tecnico.getId() +
+                                    "/disponibilidade")
+                                    .param("codigoAcesso", "123456")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(
+                            jsonPath("$.disponibilidade")
+                                    .value("ATIVO")
+                    )
+                    .andDo(print());
+        }
+
+        @Test
+        @DisplayName("Não deve alterar disponibilidade com código inválido")
+        void testAlterarDisponibilidadeCodigoInvalido() throws Exception {
+
+            Tecnico tecnico = tecnicoRepository.save(
+                    Tecnico.builder()
+                            .nomeCompleto("Teste")
+                            .especialidade("Eletricista")
+                            .placaVeiculo("AAA-1111")
+                            .tipoVeiculo("Carro")
+                            .corVeiculo("Branco")
+                            .codigoAcesso("123456")
+                            .build()
+            );
+
+            tecnicoDTO.setDisponibilidade(DisponibilidadeStatus.ATIVO);
+
+            String json =
+                    objectMapper.writeValueAsString(tecnicoDTO);
+
+            driver.perform(
+                            patch(URI_TECNICOS + "/" +
+                                    tecnico.getId() +
+                                    "/disponibilidade")
+                                    .param("codigoAcesso", "000000")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isBadRequest())
+                    .andDo(print());
+        }
+
+        @Test
+        @DisplayName("Deve retornar data da última atualização da disponibilidade")
+        void testDisponibilidadeAtualizadaEm() throws Exception {
+
+            Tecnico tecnico = tecnicoRepository.save(
+                    Tecnico.builder()
+                            .nomeCompleto("Teste")
+                            .especialidade("Eletricista")
+                            .placaVeiculo("AAA-1111")
+                            .tipoVeiculo("Carro")
+                            .corVeiculo("Branco")
+                            .codigoAcesso("123456")
+                            .build()
+            );
+
+            driver.perform(get(URI_TECNICOS + "/" + tecnico.getId()))
+                    .andExpect(status().isOk())
+                    .andExpect(
+                            jsonPath("$.disponibilidadeAtualizadaEm")
+                                    .exists()
+                    );
+        }
+
+
     }
 }

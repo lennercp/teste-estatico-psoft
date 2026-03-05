@@ -28,8 +28,8 @@ public interface ServicoRepository extends JpaRepository<Servico, Long> {
            "(:nivelUrgencia IS NULL OR s.nivelUrgencia = :nivelUrgencia) AND " +
            "(:empresaCnpj IS NULL OR s.empresa.cnpj = :empresaCnpj) AND " +
            "(:precoMin IS NULL OR s.precoBase >= :precoMin) AND " +
-           "(:precoMax IS NULL OR s.precoBase <= :precoMax) AND " +
-           "s.ativo = true")
+           "(:precoMax IS NULL OR s.precoBase <= :precoMax) " +
+           "ORDER BY s.ativo DESC") 
     List<Servico> buscarComFiltros(
             @Param("planosPermitidos") List<TipoPlano> planosPermitidos,
             @Param("tipoServico") TipoServico tipoServico,

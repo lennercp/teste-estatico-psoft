@@ -2,6 +2,7 @@ package com.ufcg.psoft.commerce.service.admin;
 
 import com.ufcg.psoft.commerce.dto.AdminPostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.AdminResponseDTO;
+import com.ufcg.psoft.commerce.exception.AdminJaExisteException;
 import com.ufcg.psoft.commerce.model.Admin;
 import com.ufcg.psoft.commerce.repository.AdminRepository;
 import org.springframework.stereotype.Service;
@@ -19,7 +20,7 @@ public class AdminServiceImpl implements AdminService {
     public AdminResponseDTO criarAdmin(AdminPostPutRequestDTO dto) {
 
         if (adminRepository.count() > 0) {
-            throw new RuntimeException("Já existe um admin cadastrado no sistema");
+            throw new AdminJaExisteException();
         }
 
         Admin admin = Admin.builder()

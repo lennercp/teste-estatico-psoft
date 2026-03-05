@@ -15,25 +15,31 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ChamadoPostPutRequestDTO {
 
-    @JsonProperty("servico")
-    @NotBlank(message = "Servico obrigatorio")
-    private long servico_id;
+    @JsonProperty("servico_id")
+    @NotNull(message = "Serviço obrigatório")
+    private Long servicoId;
 
-    @JsonProperty("empresaCnpj")
-    @NotBlank(message = "CNPJ da empresa obrigatorio")
+    @JsonProperty("empresa_cnpj")
+    @NotBlank(message = "CNPJ da empresa obrigatório")
     private String empresaCnpj;
 
     @JsonProperty("endereco")
+    @NotBlank(message = "Endereço obrigatório")
     private String endereco;
 
-    @JsonProperty("codigo")
-    @NotNull(message = "Codigo de acesso obrigatorio")
-    @Pattern(regexp = "^\\d{6}$", message = "Codigo de acesso deve ter exatamente 6 digitos numericos")
-    private String codigo;
-
     @JsonProperty("cliente_id")
-    @NotNull(message = "Cliente obrigatorio")
-    private long cliente_id;
+    @NotNull(message = "Cliente obrigatório")
+    private Long clienteId;
+
+    @JsonProperty("tecnico_id")
+    private Long tecnicoId; // Pode ser nulo no início
+
+    @JsonProperty("status_acao")
+    private String statusAcao;
+
+    @JsonProperty("codigo")
+    @Pattern(regexp = "^\\d{6}$", message = "Código de acesso deve ter exatamente 6 dígitos numéricos")
+    private String codigo;
 
     public String getEmpresaCnpj() {
         return empresaCnpj;
@@ -43,15 +49,15 @@ public class ChamadoPostPutRequestDTO {
         return endereco;
     }
 
-    public long getCliente_id() {
-        return cliente_id;
+    public long getClienteId() {
+        return clienteId;
     }
 
-    public long getServico_id() {
-        return servico_id;
+    public long getServicoId() {
+        return servicoId;
     }
 
     public String getCodigoAcesso() {
         return codigo;
     }
-};
+}

@@ -3,6 +3,7 @@ package com.ufcg.psoft.commerce.service;
 import com.ufcg.psoft.commerce.dto.TecnicoPostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.TecnicoResponseDTO;
 import com.ufcg.psoft.commerce.exception.CodigoDeAcessoInvalidoException;
+import com.ufcg.psoft.commerce.model.DisponibilidadeStatus;
 import com.ufcg.psoft.commerce.model.Tecnico;
 import com.ufcg.psoft.commerce.repository.TecnicoRepository;
 import com.ufcg.psoft.commerce.service.auth.AuthService;
@@ -17,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -172,4 +174,146 @@ class TecnicoServiceTests {
         verify(tecnicoRepository, never()).deleteById(any());
         verify(tecnicoRepository, never()).delete(any());
     }
+
+    @Test
+    @DisplayName("Técnico deve iniciar indisponível (DESCANSO)")
+    void testTecnicoIniciaDescanso() {
+
+        when(modelMapper.map(tecnicoDTO, Tecnico.class))
+                .thenReturn(tecnico);
+
+        when(tecnicoRepository.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(modelMapper.map(any(Tecnico.class),
+                eq(TecnicoResponseDTO.class)))
+                .thenReturn(tecnicoResponseDTO);
+
+        tecnicoService.criar(tecnicoDTO);
+
+        assertEquals(
+                DisponibilidadeStatus.DESCANSO,
+                tecnico.getDisponibilidade()
+        );
+    }
+
+    @Test
+    @DisplayName("Deve alterar disponibilidade para ATIVO")
+    void testAlterarDisponibilidadeSucesso() {
+
+        LocalDateTime antes = LocalDateTime.now();
+
+        try {
+            Thread.sleep(10);  // ← Aguarda 10ms
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        doNothing().when(authService)
+                .autenticarTecnico(1L, "123456");
+
+        when(tecnicoRepository.findById(1L))
+                .thenReturn(Optional.of(tecnico));
+
+        when(tecnicoRepository.save(tecnico))
+                .thenReturn(tecnico);
+
+        tecnicoService.alterarDisponibilidade(
+                1L,
+                "123456",
+                DisponibilidadeStatus.ATIVO
+        );
+
+        assertEquals(
+                DisponibilidadeStatus.ATIVO,
+                tecnico.getDisponibilidade()
+        );
+
+        assertTrue(
+                tecnico.getDisponibilidadeAtualizadaEm().isAfter(antes)
+        );
+
+        verify(tecnicoRepository).save(tecnico);
+    }
+
+    @Test
+    @DisplayName("Não deve alterar disponibilidade com código inválido")
+    void testAlterarDisponibilidadeCodigoInvalido() {
+
+        doThrow(new CodigoDeAcessoInvalidoException())
+                .when(authService)
+                .autenticarTecnico(1L, "000000");
+
+        assertThrows(
+                CodigoDeAcessoInvalidoException.class,
+                () -> tecnicoService.alterarDisponibilidade(
+                        1L,
+                        "000000",
+                        DisponibilidadeStatus.ATIVO
+                )
+        );
+
+        verify(tecnicoRepository, never()).save(any());
+    }
+
+
+
+    @Test
+    @DisplayName("Atualizar dados não deve alterar disponibilidade")
+    void testAtualizarNaoAlteraDisponibilidade() {
+
+        tecnico.setDisponibilidade(DisponibilidadeStatus.DESCANSO);
+
+        doNothing().when(authService)
+                .autenticarTecnico(1L, "123456");
+
+        when(tecnicoRepository.findById(1L))
+                .thenReturn(Optional.of(tecnico));
+
+        doNothing().when(modelMapper)
+                .map(tecnicoDTO, tecnico);
+
+        when(tecnicoRepository.save(tecnico))
+                .thenReturn(tecnico);
+
+        when(modelMapper.map(tecnico,
+                TecnicoResponseDTO.class))
+                .thenReturn(tecnicoResponseDTO);
+
+        tecnicoService.atualizar(
+                1L,
+                "123456",
+                tecnicoDTO
+        );
+
+        assertEquals(
+                DisponibilidadeStatus.DESCANSO,
+                tecnico.getDisponibilidade()
+        );
+    }
+
+    @Test
+    @DisplayName("Deve permitir voltar para DESCANSO")
+    void testVoltarParaDescanso() {
+
+        tecnico.setDisponibilidade(DisponibilidadeStatus.ATIVO);
+
+        doNothing().when(authService)
+                .autenticarTecnico(1L, "123456");
+
+        when(tecnicoRepository.findById(1L))
+                .thenReturn(Optional.of(tecnico));
+
+        tecnicoService.alterarDisponibilidade(
+                1L,
+                "123456",
+                DisponibilidadeStatus.DESCANSO
+        );
+
+        assertEquals(
+                DisponibilidadeStatus.DESCANSO,
+                tecnico.getDisponibilidade()
+        );
+    }
+
 }

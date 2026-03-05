@@ -1,6 +1,7 @@
 package com.ufcg.psoft.commerce.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.ufcg.psoft.commerce.model.DisponibilidadeStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -40,4 +41,7 @@ public class TecnicoPostPutRequestDTO {
     @Size(min = 6, max = 6, message = "O código de acesso deve ter exatamente 6 dígitos")
     @Pattern(regexp = "\\d{6}", message = "O código de acesso deve conter apenas números")
     private String codigoAcesso;
+
+    @JsonProperty("disponibilidade")
+    private DisponibilidadeStatus disponibilidade;
 }

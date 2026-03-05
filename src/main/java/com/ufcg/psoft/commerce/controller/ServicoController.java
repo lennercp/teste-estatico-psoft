@@ -2,8 +2,11 @@ package com.ufcg.psoft.commerce.controller;
 
 
 import com.ufcg.psoft.commerce.dto.EmpresaPostPutRequestDTO;
+import com.ufcg.psoft.commerce.dto.ServicoInteresseRequestDTO;
 import com.ufcg.psoft.commerce.dto.ServicoPostPutRequestDTO;
+import com.ufcg.psoft.commerce.dto.ServicoResponseDTO;
 import com.ufcg.psoft.commerce.service.empresa.EmpresaService;
+import com.ufcg.psoft.commerce.service.interesse.InteresseService;
 import com.ufcg.psoft.commerce.service.servico.ServicoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -17,9 +20,11 @@ import org.springframework.web.bind.annotation.*;
 public class ServicoController {
 
     private final ServicoService servicoService;
+    private final InteresseService interesseService;
 
-    public ServicoController(ServicoService servicoService) {
+    public ServicoController(ServicoService servicoService, InteresseService interesseService) {
         this.servicoService = servicoService;
+        this.interesseService = interesseService;
     }
 
     @GetMapping("/{id}")
@@ -93,5 +98,32 @@ public class ServicoController {
         return ResponseEntity
                 .status(HttpStatus.NO_CONTENT)
                 .build();
+    }
+
+    @PostMapping("/{id}/interesse")
+    public ResponseEntity<?> adicionarInteresse(
+            @PathVariable String cnpj,
+            @PathVariable Long id,
+            @RequestParam String codigoAcesso,
+            @RequestBody @Valid ServicoInteresseRequestDTO dto) {
+        interesseService.adicionarInteresse(
+                cnpj,
+                codigoAcesso,
+                id,
+                dto
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+        }
+
+    @PatchMapping("/{servicoId}/disponibilidade")
+    public ResponseEntity<ServicoResponseDTO> alterarDisponibilidade(
+            @PathVariable String cnpj,
+            @PathVariable Long servicoId,
+            @RequestParam String codigoAcesso,
+            @RequestParam boolean disponivel) {
+        
+        ServicoResponseDTO resultado = servicoService.alterarDisponibilidade(cnpj, codigoAcesso, servicoId, disponivel);
+        return ResponseEntity.ok(resultado);
     }
 }

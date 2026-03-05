@@ -1,6 +1,7 @@
 package com.ufcg.psoft.commerce.service.servico;
 
 
+import com.ufcg.psoft.commerce.dto.ServicoInteresseRequestDTO;
 import com.ufcg.psoft.commerce.dto.ServicoPostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.ServicoResponseDTO;
 import com.ufcg.psoft.commerce.model.Empresa;
@@ -25,6 +26,11 @@ public interface ServicoService {
     void remover(String cnpj,
                  String codigoAcesso,
                  Long servicoId);
+
+    ServicoResponseDTO alterarDisponibilidade(String cnpj,
+                                              String codigoAcesso,
+                                              Long servicoId,
+                                              boolean disponivel);
 }
 
 
