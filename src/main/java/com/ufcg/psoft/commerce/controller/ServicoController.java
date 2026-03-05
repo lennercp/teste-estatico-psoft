@@ -1,6 +1,5 @@
 package com.ufcg.psoft.commerce.controller;
 
-
 import com.ufcg.psoft.commerce.dto.EmpresaPostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.ServicoInteresseRequestDTO;
 import com.ufcg.psoft.commerce.dto.ServicoPostPutRequestDTO;
@@ -9,11 +8,13 @@ import com.ufcg.psoft.commerce.service.empresa.EmpresaService;
 import com.ufcg.psoft.commerce.service.interesse.InteresseService;
 import com.ufcg.psoft.commerce.service.servico.ServicoService;
 import jakarta.validation.Valid;
+
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 
 @RestController
 @RequestMapping("/empresas/{cnpj}/servicos")
@@ -28,7 +29,7 @@ public class ServicoController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> recuperarServico(
+    public ResponseEntity<ServicoResponseDTO> recuperarServico(
             @PathVariable String cnpj,
             @PathVariable Long id) {
 
@@ -38,7 +39,7 @@ public class ServicoController {
     }
 
     @GetMapping
-    public ResponseEntity<?> listarServicos(
+    public ResponseEntity<List<ServicoResponseDTO>> listarServicos(
             @PathVariable String cnpj) {
 
         return ResponseEntity
@@ -47,24 +48,21 @@ public class ServicoController {
     }
 
     @PostMapping
-    public ResponseEntity<?> criarServico(
+    public ResponseEntity<ServicoResponseDTO> criarServico(
             @PathVariable String cnpj,
             @RequestParam String codigoAcesso,
             @RequestBody @Valid ServicoPostPutRequestDTO servicoPostPutRequestDTO) {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(
-                        servicoService.criar(
-                                cnpj,
-                                codigoAcesso,
-                                servicoPostPutRequestDTO
-                        )
-                );
+                .body(servicoService.criar(
+                        cnpj,
+                        codigoAcesso,
+                        servicoPostPutRequestDTO));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> atualizarServico(
+    public ResponseEntity<ServicoResponseDTO> atualizarServico(
             @PathVariable String cnpj,
             @PathVariable Long id,
             @RequestParam String codigoAcesso,
@@ -72,18 +70,15 @@ public class ServicoController {
 
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(
-                        servicoService.alterar(
-                                cnpj,
-                                codigoAcesso,
-                                id,
-                                servicoPostPutRequestDTO
-                        )
-                );
+                .body(servicoService.alterar(
+                        cnpj,
+                        codigoAcesso,
+                        id,
+                        servicoPostPutRequestDTO));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> excluirServico(
+    public ResponseEntity<Void> excluirServico(
             @PathVariable String cnpj,
             @PathVariable Long id,
             @RequestParam String codigoAcesso) {
@@ -101,7 +96,7 @@ public class ServicoController {
     }
 
     @PostMapping("/{id}/interesse")
-    public ResponseEntity<?> adicionarInteresse(
+    public ResponseEntity<Void> adicionarInteresse(
             @PathVariable String cnpj,
             @PathVariable Long id,
             @RequestParam String codigoAcesso,
@@ -110,11 +105,10 @@ public class ServicoController {
                 cnpj,
                 codigoAcesso,
                 id,
-                dto
-        );
+                dto);
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
-        }
+    }
 
     @PatchMapping("/{servicoId}/disponibilidade")
     public ResponseEntity<ServicoResponseDTO> alterarDisponibilidade(
@@ -122,8 +116,9 @@ public class ServicoController {
             @PathVariable Long servicoId,
             @RequestParam String codigoAcesso,
             @RequestParam boolean disponivel) {
-        
-        ServicoResponseDTO resultado = servicoService.alterarDisponibilidade(cnpj, codigoAcesso, servicoId, disponivel);
+
+        ServicoResponseDTO resultado = servicoService.alterarDisponibilidade(cnpj, codigoAcesso, servicoId,
+                disponivel);
         return ResponseEntity.ok(resultado);
     }
 }

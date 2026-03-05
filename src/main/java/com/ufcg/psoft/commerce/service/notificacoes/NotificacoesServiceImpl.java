@@ -10,16 +10,15 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class NotificacoesServiceImpl implements NotificacoesService{
+public class NotificacoesServiceImpl implements NotificacoesService {
 
     private final ClienteRepository clienteRepository;
     private final TecnicoRepository tecnicoRepository;
 
-
     @Override
     public void notificaChamadoEmAtendimento(ChamadoResponseDTO dto) {
 
-        Cliente cliente = clienteRepository.findById(dto.getCliente_id())
+        Cliente cliente = clienteRepository.findById(dto.getClienteId())
                 .orElse(null);
 
         if (cliente == null) {

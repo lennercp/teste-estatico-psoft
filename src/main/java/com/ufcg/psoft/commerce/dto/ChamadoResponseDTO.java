@@ -22,17 +22,16 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ChamadoResponseDTO {
 
-
     @JsonProperty("id")
     private Long id;
 
     @JsonProperty("servico")
     @NotBlank(message = "Servico obrigatorio")
-    private long servico_id;
+    private long servicoId;
 
     @JsonProperty("empresa_cnpj")
     @NotBlank(message = "CNPJ da empresa obrigatorio")
-    private String empresa_cnpj;
+    private String empresaCnpj;
 
     @JsonProperty("endereco")
     @NotBlank(message = "Endereco obrigatorio")
@@ -40,7 +39,7 @@ public class ChamadoResponseDTO {
 
     @JsonProperty("cliente_id")
     @NotNull(message = "Cliente obrigatorio")
-    private long cliente_id;
+    private long clienteId;
 
     @JsonProperty("tecnico_id")
     private Long tecnicoId; // Pode ser null se ainda não houver técnico
@@ -53,10 +52,10 @@ public class ChamadoResponseDTO {
 
     public ChamadoResponseDTO(Chamado chamado) {
         this.id = chamado.getId();
-        this.servico_id = chamado.getServico().getId();
-        this.empresa_cnpj = chamado.getEmpresa().getCnpj();
+        this.servicoId = chamado.getServico().getId();
+        this.empresaCnpj = chamado.getEmpresa().getCnpj();
         this.endereco = chamado.getEndereco();
-        this.cliente_id = chamado.getCliente().getId();
+        this.clienteId = chamado.getCliente().getId();
         this.dataCriacao = chamado.getDataCriacao();
         this.status = chamado.getStatus().getDescricao();
 

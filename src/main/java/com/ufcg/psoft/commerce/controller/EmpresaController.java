@@ -1,14 +1,16 @@
 package com.ufcg.psoft.commerce.controller;
 
-
 import com.ufcg.psoft.commerce.dto.EmpresaPostPutRequestDTO;
+import com.ufcg.psoft.commerce.dto.EmpresaResponseDTO;
 import com.ufcg.psoft.commerce.service.empresa.EmpresaService;
 import jakarta.validation.Valid;
+
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 
 @RestController
 @RequestMapping("/empresas")
@@ -16,12 +18,12 @@ public class EmpresaController {
 
     private final EmpresaService empresaService;
 
-    public EmpresaController(EmpresaService empresaService){
+    public EmpresaController(EmpresaService empresaService) {
         this.empresaService = empresaService;
     }
 
     @GetMapping("/{cnpj}")
-    public ResponseEntity<?> recuperarEmpresa(
+    public ResponseEntity<EmpresaResponseDTO> recuperarEmpresa(
             @PathVariable String cnpj) {
 
         return ResponseEntity
@@ -30,7 +32,7 @@ public class EmpresaController {
     }
 
     @GetMapping
-    public ResponseEntity<?> listarEmpresas() {
+    public ResponseEntity<List<EmpresaResponseDTO>> listarEmpresas() {
 
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -38,7 +40,7 @@ public class EmpresaController {
     }
 
     @PostMapping
-    public ResponseEntity<?> criarEmpresa(
+    public ResponseEntity<EmpresaResponseDTO> criarEmpresa(
             @RequestParam Long id,
             @RequestParam String senhaAdmin,
             @RequestBody @Valid EmpresaPostPutRequestDTO empresaPostPutRequestDTO) {
@@ -49,13 +51,11 @@ public class EmpresaController {
                         empresaService.criar(
                                 id,
                                 senhaAdmin,
-                                empresaPostPutRequestDTO
-                        )
-                );
+                                empresaPostPutRequestDTO));
     }
 
     @PutMapping("/{cnpj}")
-    public ResponseEntity<?> atualizarEmpresa(
+    public ResponseEntity<EmpresaResponseDTO> atualizarEmpresa(
             @RequestParam Long id,
             @PathVariable String cnpj,
             @RequestParam String codigoAcesso,
@@ -71,13 +71,11 @@ public class EmpresaController {
                                 cnpj,
                                 codigoAcesso,
                                 senhaAdmin,
-                                empresaPostPutRequestDTO
-                        )
-                );
+                                empresaPostPutRequestDTO));
     }
 
     @DeleteMapping("/{cnpj}")
-    public ResponseEntity<?> excluirEmpresa(
+    public ResponseEntity<Void> excluirEmpresa(
             @RequestParam Long id,
             @PathVariable String cnpj,
             @RequestParam String codigoAcesso,
@@ -88,8 +86,7 @@ public class EmpresaController {
                 id,
                 cnpj,
                 codigoAcesso,
-                senhaAdmin
-        );
+                senhaAdmin);
 
         return ResponseEntity
                 .status(HttpStatus.NO_CONTENT)
@@ -97,7 +94,7 @@ public class EmpresaController {
     }
 
     @PutMapping("/{cnpj}/aprovar/{tecnicoId}")
-    public ResponseEntity<?> aprovarTecnico(
+    public ResponseEntity<Void> aprovarTecnico(
             @PathVariable String cnpj,
             @PathVariable Long tecnicoId,
             @RequestParam String codigo) {
@@ -108,7 +105,7 @@ public class EmpresaController {
     }
 
     @PutMapping("/{cnpj}/rejeitar/{tecnicoId}")
-    public ResponseEntity<?> rejeitarTecnico(
+    public ResponseEntity<Void> rejeitarTecnico(
             @PathVariable String cnpj,
             @PathVariable Long tecnicoId,
             @RequestParam String codigo) {

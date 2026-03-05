@@ -14,9 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-
 import java.time.LocalDateTime;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -26,19 +24,27 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @DisplayName("Testes do controlador de Chamados")
-public class ChamadoControllerTest {
+class ChamadoControllerTest {
 
-    private static final String URI = "/chamados";
+    private static final String URL_CHAMADOS = "/chamados";
 
-    @Autowired MockMvc driver;
-    @Autowired ObjectMapper objectMapper;
+    @Autowired
+    MockMvc driver;
+    @Autowired
+    ObjectMapper objectMapper;
 
-    @Autowired PagamentoRepository pagamentoRepository;
-    @Autowired ClienteRepository clienteRepository;
-    @Autowired EmpresaRepository empresaRepository;
-    @Autowired ServicoRepository servicoRepository;
-    @Autowired ChamadoRepository chamadoRepository;
-    @Autowired TecnicoRepository tecnicoRepository;
+    @Autowired
+    PagamentoRepository pagamentoRepository;
+    @Autowired
+    ClienteRepository clienteRepository;
+    @Autowired
+    EmpresaRepository empresaRepository;
+    @Autowired
+    ServicoRepository servicoRepository;
+    @Autowired
+    ChamadoRepository chamadoRepository;
+    @Autowired
+    TecnicoRepository tecnicoRepository;
 
     Cliente cliente;
     Empresa empresa;
@@ -105,12 +111,12 @@ public class ChamadoControllerTest {
 
         @Test
         void criarChamadoValido() throws Exception {
-            String json = driver.perform(post(URI)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .header("X-USER-TYPE", "CLIENTE")
-                            .header("X-CLIENT-ID", cliente.getId())
-                            .header("X-ACCESS-CODE", cliente.getCodigo())
-                            .content(objectMapper.writeValueAsString(criarDTO)))
+            String json = driver.perform(post(URL_CHAMADOS)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("X-USER-TYPE", "CLIENTE")
+                    .header("X-CLIENT-ID", cliente.getId())
+                    .header("X-ACCESS-CODE", cliente.getCodigo())
+                    .content(objectMapper.writeValueAsString(criarDTO)))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
 
@@ -120,12 +126,12 @@ public class ChamadoControllerTest {
 
         @Test
         void criarChamadoNaoCliente() throws Exception {
-            driver.perform(post(URI)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .header("X-USER-TYPE", "EMPRESA")
-                            .header("X-EMPRESA-CNPJ", empresa.getCnpj())
-                            .header("X-ACCESS-CODE", empresa.getCodigoAcesso())
-                            .content(objectMapper.writeValueAsString(criarDTO)))
+            driver.perform(post(URL_CHAMADOS)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("X-USER-TYPE", "EMPRESA")
+                    .header("X-EMPRESA-CNPJ", empresa.getCnpj())
+                    .header("X-ACCESS-CODE", empresa.getCodigoAcesso())
+                    .content(objectMapper.writeValueAsString(criarDTO)))
                     .andExpect(status().isBadRequest());
         }
     }
@@ -150,10 +156,10 @@ public class ChamadoControllerTest {
 
         @Test
         void recuperarValido() throws Exception {
-            driver.perform(get(URI + "/" + chamado.getId())
-                            .header("X-USER-TYPE", "CLIENTE")
-                            .header("X-CLIENT-ID", cliente.getId())
-                            .header("X-ACCESS-CODE", cliente.getCodigo()))
+            driver.perform(get(URL_CHAMADOS + "/" + chamado.getId())
+                    .header("X-USER-TYPE", "CLIENTE")
+                    .header("X-CLIENT-ID", cliente.getId())
+                    .header("X-ACCESS-CODE", cliente.getCodigo()))
                     .andExpect(status().isOk());
         }
 
@@ -167,19 +173,19 @@ public class ChamadoControllerTest {
                     .planoAgendado(TipoPlano.BASICO)
                     .build());
 
-            driver.perform(get(URI + "/" + chamado.getId())
-                            .header("X-USER-TYPE", "CLIENTE")
-                            .header("X-CLIENT-ID", outro.getId())
-                            .header("X-ACCESS-CODE", outro.getCodigo()))
+            driver.perform(get(URL_CHAMADOS + "/" + chamado.getId())
+                    .header("X-USER-TYPE", "CLIENTE")
+                    .header("X-CLIENT-ID", outro.getId())
+                    .header("X-ACCESS-CODE", outro.getCodigo()))
                     .andExpect(status().isBadRequest());
         }
 
         @Test
         void recuperarInexistente() throws Exception {
-            driver.perform(get(URI + "/999")
-                            .header("X-USER-TYPE", "CLIENTE")
-                            .header("X-CLIENT-ID", cliente.getId())
-                            .header("X-ACCESS-CODE", cliente.getCodigo()))
+            driver.perform(get(URL_CHAMADOS + "/999")
+                    .header("X-USER-TYPE", "CLIENTE")
+                    .header("X-CLIENT-ID", cliente.getId())
+                    .header("X-ACCESS-CODE", cliente.getCodigo()))
                     .andExpect(status().isBadRequest());
         }
     }
@@ -206,12 +212,12 @@ public class ChamadoControllerTest {
             ChamadoPatchRequestDTO dto = new ChamadoPatchRequestDTO();
             dto.setEndereco("Novo endereco");
 
-            driver.perform(patch(URI + "/" + chamado.getId())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .header("X-USER-TYPE", "CLIENTE")
-                            .header("X-CLIENT-ID", cliente.getId())
-                            .header("X-ACCESS-CODE", cliente.getCodigo())
-                            .content(objectMapper.writeValueAsString(dto)))
+            driver.perform(patch(URL_CHAMADOS + "/" + chamado.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("X-USER-TYPE", "CLIENTE")
+                    .header("X-CLIENT-ID", cliente.getId())
+                    .header("X-ACCESS-CODE", cliente.getCodigo())
+                    .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isOk());
         }
 
@@ -228,12 +234,12 @@ public class ChamadoControllerTest {
             ChamadoPatchRequestDTO dto = new ChamadoPatchRequestDTO();
             dto.setEndereco("Novo");
 
-            driver.perform(patch(URI + "/" + chamado.getId())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .header("X-USER-TYPE", "CLIENTE")
-                            .header("X-CLIENT-ID", outro.getId())
-                            .header("X-ACCESS-CODE", outro.getCodigo())
-                            .content(objectMapper.writeValueAsString(dto)))
+            driver.perform(patch(URL_CHAMADOS + "/" + chamado.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("X-USER-TYPE", "CLIENTE")
+                    .header("X-CLIENT-ID", outro.getId())
+                    .header("X-ACCESS-CODE", outro.getCodigo())
+                    .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isBadRequest());
         }
     }
@@ -257,10 +263,10 @@ public class ChamadoControllerTest {
 
         @Test
         void deletarValido() throws Exception {
-            driver.perform(delete(URI + "/" + chamado.getId())
-                            .header("X-USER-TYPE", "CLIENTE")
-                            .header("X-CLIENT-ID", cliente.getId())
-                            .header("X-ACCESS-CODE", cliente.getCodigo()))
+            driver.perform(delete(URL_CHAMADOS + "/" + chamado.getId())
+                    .header("X-USER-TYPE", "CLIENTE")
+                    .header("X-CLIENT-ID", cliente.getId())
+                    .header("X-ACCESS-CODE", cliente.getCodigo()))
                     .andExpect(status().isNoContent());
         }
 
@@ -274,10 +280,10 @@ public class ChamadoControllerTest {
                     .planoAgendado(TipoPlano.BASICO)
                     .build());
 
-            driver.perform(delete(URI + "/" + chamado.getId())
-                            .header("X-USER-TYPE", "CLIENTE")
-                            .header("X-CLIENT-ID", outro.getId())
-                            .header("X-ACCESS-CODE", outro.getCodigo()))
+            driver.perform(delete(URL_CHAMADOS + "/" + chamado.getId())
+                    .header("X-USER-TYPE", "CLIENTE")
+                    .header("X-CLIENT-ID", outro.getId())
+                    .header("X-ACCESS-CODE", outro.getCodigo()))
                     .andExpect(status().isBadRequest());
         }
     }
@@ -304,11 +310,11 @@ public class ChamadoControllerTest {
             ChamadoPagamentoRequestDTO dto = new ChamadoPagamentoRequestDTO();
             dto.setMetodo(MeioPagamento.PIX);
 
-            driver.perform(post(URI + "/" + chamado.getId() + "/pagamento")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .header("X-CLIENT-ID", cliente.getId())
-                            .header("X-ACCESS-CODE", cliente.getCodigo())
-                            .content(objectMapper.writeValueAsString(dto)))
+            driver.perform(post(URL_CHAMADOS + "/" + chamado.getId() + "/pagamento")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("X-CLIENT-ID", cliente.getId())
+                    .header("X-ACCESS-CODE", cliente.getCodigo())
+                    .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isNoContent());
         }
 
@@ -317,11 +323,11 @@ public class ChamadoControllerTest {
             ChamadoPagamentoRequestDTO dto = new ChamadoPagamentoRequestDTO();
             dto.setMetodo(MeioPagamento.PIX);
 
-            driver.perform(post(URI + "/999/pagamento")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .header("X-CLIENT-ID", cliente.getId())
-                            .header("X-ACCESS-CODE", cliente.getCodigo())
-                            .content(objectMapper.writeValueAsString(dto)))
+            driver.perform(post(URL_CHAMADOS + "/999/pagamento")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("X-CLIENT-ID", cliente.getId())
+                    .header("X-ACCESS-CODE", cliente.getCodigo())
+                    .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isBadRequest());
         }
     }
@@ -350,12 +356,12 @@ public class ChamadoControllerTest {
             dto.setStatusAcao("AVANCAR");
             dto.setCodigo(empresa.getCodigoAcesso());
 
-            driver.perform(patch(URI + "/" + chamado.getId())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .header("X-USER-TYPE", "EMPRESA")
-                            .header("X-EMPRESA-CNPJ", empresa.getCnpj())
-                            .header("X-ACCESS-CODE", empresa.getCodigoAcesso())
-                            .content(objectMapper.writeValueAsString(dto)))
+            driver.perform(patch(URL_CHAMADOS + "/" + chamado.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("X-USER-TYPE", "EMPRESA")
+                    .header("X-EMPRESA-CNPJ", empresa.getCnpj())
+                    .header("X-ACCESS-CODE", empresa.getCodigoAcesso())
+                    .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.status").value("EM_ANALISE"));
         }
@@ -383,18 +389,19 @@ public class ChamadoControllerTest {
             dto.setTecnicoId(tecnico.getId());
             dto.setCodigo(empresa.getCodigoAcesso());
 
-            driver.perform(patch(URI + "/" + chamado.getId())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .header("X-USER-TYPE", "EMPRESA")
-                            .header("X-EMPRESA-CNPJ", empresa.getCnpj())
-                            .header("X-ACCESS-CODE", empresa.getCodigoAcesso())
-                            .content(objectMapper.writeValueAsString(dto)))
+            driver.perform(patch(URL_CHAMADOS + "/" + chamado.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("X-USER-TYPE", "EMPRESA")
+                    .header("X-EMPRESA-CNPJ", empresa.getCnpj())
+                    .header("X-ACCESS-CODE", empresa.getCodigoAcesso())
+                    .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.status").value("ATENDIMENTO"))
                     .andExpect(jsonPath("$.tecnico_id").value(tecnico.getId()));
 
-            Thread.sleep(200);  // ← ADICIONE AQUI também
+            Thread.sleep(200); // ← ADICIONE AQUI também
         }
+
         @Test
         @DisplayName("Deve falhar ao cancelar chamado que já está em ATENDIMENTO")
         void erroAoCancelarChamadoEmAtendimento() throws Exception {
@@ -402,12 +409,11 @@ public class ChamadoControllerTest {
             chamado.setStatus(StatusChamado.ATENDIMENTO);
             chamadoRepository.save(chamado);
 
-            driver.perform(delete(URI + "/" + chamado.getId())
-                            .header("X-USER-TYPE", "CLIENTE")
-                            .header("X-CLIENT-ID", cliente.getId())
-                            .header("X-ACCESS-CODE", cliente.getCodigo()))
+            driver.perform(delete(URL_CHAMADOS + "/" + chamado.getId())
+                    .header("X-USER-TYPE", "CLIENTE")
+                    .header("X-CLIENT-ID", cliente.getId())
+                    .header("X-ACCESS-CODE", cliente.getCodigo()))
                     .andExpect(status().isBadRequest());
-
 
             assertTrue(chamadoRepository.existsById(chamado.getId()));
         }
@@ -424,10 +430,10 @@ public class ChamadoControllerTest {
                     .planoAgendado(TipoPlano.BASICO)
                     .build());
 
-            driver.perform(delete(URI + "/" + chamado.getId())
-                            .header("X-USER-TYPE", "CLIENTE")
-                            .header("X-CLIENT-ID", invasor.getId())
-                            .header("X-ACCESS-CODE", invasor.getCodigo()))
+            driver.perform(delete(URL_CHAMADOS + "/" + chamado.getId())
+                    .header("X-USER-TYPE", "CLIENTE")
+                    .header("X-CLIENT-ID", invasor.getId())
+                    .header("X-ACCESS-CODE", invasor.getCodigo()))
                     .andExpect(status().isBadRequest());
         }
 
@@ -442,12 +448,12 @@ public class ChamadoControllerTest {
             dto.setTecnicoId(null);
             dto.setCodigo(empresa.getCodigoAcesso());
 
-            driver.perform(patch(URI + "/" + chamado.getId())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .header("X-USER-TYPE", "EMPRESA")
-                            .header("X-EMPRESA-CNPJ", empresa.getCnpj())
-                            .header("X-ACCESS-CODE", empresa.getCodigoAcesso())
-                            .content(objectMapper.writeValueAsString(dto)))
+            driver.perform(patch(URL_CHAMADOS + "/" + chamado.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("X-USER-TYPE", "EMPRESA")
+                    .header("X-EMPRESA-CNPJ", empresa.getCnpj())
+                    .header("X-ACCESS-CODE", empresa.getCodigoAcesso())
+                    .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isBadRequest());
         }
     }

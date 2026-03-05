@@ -20,8 +20,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
-import org.junit.jupiter.api.*;
-
 
 import java.util.List;
 import java.util.Optional;
@@ -32,408 +30,398 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Testes do Service de Serviço")
 class ServicoServiceImplTest {
 
-    @Mock
-    ServicoRepository servicoRepository;
+        @Mock
+        ServicoRepository servicoRepository;
+
+        @Mock
+        EmpresaRepository empresaRepository;
+
+        @Mock
+        ModelMapper modelMapper;
+
+        @Mock
+        AuthService authService;
+
+        @Mock
+        InteresseRepository interesseRepository;
+
+        @InjectMocks
+        ServicoServiceImpl servicoService;
+
+        static final String CNPJ = "12345678910111";
+        static final String CODIGO_VALIDO = "123456";
+        static final String CODIGO_INVALIDO = "000000";
+        static final Long SERVICO_ID = 1L;
 
-    @Mock
-    EmpresaRepository empresaRepository;
+        Empresa empresa;
+        Servico servico;
+        ServicoPostPutRequestDTO requestDTO;
+        ServicoResponseDTO responseDTO;
 
-    @Mock
-    ModelMapper modelMapper;
+        @BeforeEach
+        void setup() {
 
-    @Mock
-    AuthService authService;
+                empresa = Empresa.builder()
+                                .cnpj(CNPJ)
+                                .nomeFantasia("Empresa Teste")
+                                .codigoAcesso(CODIGO_VALIDO)
+                                .build();
 
-    @Mock
-    InteresseRepository interesseRepository;
+                servico = Servico.builder()
+                                .id(SERVICO_ID)
+                                .nome("Serviço Teste")
+                                .tipo(TipoServico.PINTURA)
+                                .nivelUrgencia(NivelUrgencia.NORMAL)
+                                .descricao("Descrição do serviço")
+                                .precoBase(500.0)
+                                .tipoPlano(TipoPlano.AMBOS)
+                                .duracaoEstimada(120)
+                                .ativo(true)
+                                .empresa(empresa)
+                                .build();
 
-    @InjectMocks
-    ServicoServiceImpl servicoService;
+                requestDTO = ServicoPostPutRequestDTO.builder()
+                                .nome("Serviço Teste")
+                                .tipo(TipoServico.PINTURA)
+                                .nivelUrgencia(NivelUrgencia.NORMAL)
+                                .descricao("Descrição do serviço")
+                                .precoBase(500.0)
+                                .tipoPlano(TipoPlano.AMBOS)
+                                .duracaoEstimada(120)
+                                .build();
 
-    static final String CNPJ = "12345678910111";
-    static final String CODIGO_VALIDO = "123456";
-    static final String CODIGO_INVALIDO = "000000";
-    static final Long SERVICO_ID = 1L;
+                responseDTO = new ServicoResponseDTO(servico);
+        }
 
-    Empresa empresa;
-    Servico servico;
-    ServicoPostPutRequestDTO requestDTO;
-    ServicoResponseDTO responseDTO;
+        @Test
+        @DisplayName("Quando empresa cria serviço válido")
+        void quandoCriamosServicoValido() {
 
-    @BeforeEach
-    void setup() {
+                doNothing().when(authService)
+                                .autenticarEmpresa(CNPJ, CODIGO_VALIDO);
+
+                when(empresaRepository.findByCnpj(CNPJ))
+                                .thenReturn(Optional.of(empresa));
 
-        empresa = Empresa.builder()
-                .cnpj(CNPJ)
-                .nomeFantasia("Empresa Teste")
-                .codigoAcesso(CODIGO_VALIDO)
-                .build();
+                when(servicoRepository.existsByNomeAndEmpresa(
+                                requestDTO.getNome(), empresa))
+                                .thenReturn(false);
 
-        servico = Servico.builder()
-                .id(SERVICO_ID)
-                .nome("Serviço Teste")
-                .tipo(TipoServico.PINTURA)
-                .nivelUrgencia(NivelUrgencia.NORMAL)
-                .descricao("Descrição do serviço")
-                .precoBase(500.0)
-                .tipoPlano(TipoPlano.AMBOS)
-                .duracaoEstimada(120)
-                .ativo(true)
-                .empresa(empresa)
-                .build();
+                when(modelMapper.map(requestDTO, Servico.class))
+                                .thenReturn(servico);
 
-        requestDTO = ServicoPostPutRequestDTO.builder()
-                .nome("Serviço Teste")
-                .tipo(TipoServico.PINTURA)
-                .nivelUrgencia(NivelUrgencia.NORMAL)
-                .descricao("Descrição do serviço")
-                .precoBase(500.0)
-                .tipoPlano(TipoPlano.AMBOS)
-                .duracaoEstimada(120)
-                .build();
+                when(modelMapper.map(servico, ServicoResponseDTO.class))
+                                .thenReturn(responseDTO);
 
-        responseDTO = new ServicoResponseDTO(servico);
-    }
+                ServicoResponseDTO resultado = servicoService.criar(CNPJ, CODIGO_VALIDO, requestDTO);
 
+                assertNotNull(resultado);
+                assertEquals("Serviço Teste", resultado.getNome());
 
-    @Test
-    @DisplayName("Quando empresa cria serviço válido")
-    void quandoCriamosServicoValido() {
+                verify(servicoRepository).save(servico);
+        }
 
-        doNothing().when(authService)
-                .autenticarEmpresa(CNPJ, CODIGO_VALIDO);
+        @Test
+        @DisplayName("Quando empresa cria serviço com código inválido")
+        void quandoCriamosServicoCodigoInvalido() {
 
-        when(empresaRepository.findByCnpj(CNPJ))
-                .thenReturn(Optional.of(empresa));
+                doThrow(CodigoDeAcessoInvalidoException.class)
+                                .when(authService)
+                                .autenticarEmpresa(CNPJ, CODIGO_INVALIDO);
 
-        when(servicoRepository.existsByNomeAndEmpresa(
-                requestDTO.getNome(), empresa))
-                .thenReturn(false);
+                assertThrows(CodigoDeAcessoInvalidoException.class,
+                                () -> servicoService.criar(CNPJ, CODIGO_INVALIDO, requestDTO));
 
-        when(modelMapper.map(requestDTO, Servico.class))
-                .thenReturn(servico);
+                verify(servicoRepository, never()).save(any());
+        }
 
-        when(modelMapper.map(servico, ServicoResponseDTO.class))
-                .thenReturn(responseDTO);
+        @Test
+        @DisplayName("Quando empresa tenta criar serviço que já existe")
+        void quandoCriamosServicoJaExistente() {
 
-        ServicoResponseDTO resultado =
-                servicoService.criar(CNPJ, CODIGO_VALIDO, requestDTO);
+                doNothing().when(authService)
+                                .autenticarEmpresa(CNPJ, CODIGO_VALIDO);
 
-        assertNotNull(resultado);
-        assertEquals("Serviço Teste", resultado.getNome());
+                when(empresaRepository.findByCnpj(CNPJ))
+                                .thenReturn(Optional.of(empresa));
 
-        verify(servicoRepository).save(servico);
-    }
+                when(servicoRepository.existsByNomeAndEmpresa(
+                                requestDTO.getNome(), empresa))
+                                .thenReturn(true);
 
+                assertThrows(ServicoJaExisteException.class,
+                                () -> servicoService.criar(CNPJ, CODIGO_VALIDO, requestDTO));
 
+                verify(servicoRepository, never()).save(any());
+        }
 
-    @Test
-    @DisplayName("Quando empresa cria serviço com código inválido")
-    void quandoCriamosServicoCodigoInvalido() {
+        @Test
+        @DisplayName("Quando tentamos criar serviço para empresa que não existe")
+        void quandoCriamosServicoEmpresaNaoExiste() {
 
-        doThrow(CodigoDeAcessoInvalidoException.class)
-                .when(authService)
-                .autenticarEmpresa(CNPJ, CODIGO_INVALIDO);
+                doNothing().when(authService)
+                                .autenticarEmpresa(CNPJ, CODIGO_VALIDO);
 
-        assertThrows(CodigoDeAcessoInvalidoException.class,
-                () -> servicoService.criar(CNPJ, CODIGO_INVALIDO, requestDTO));
+                when(empresaRepository.findByCnpj(CNPJ))
+                                .thenReturn(Optional.empty());
 
-        verify(servicoRepository, never()).save(any());
-    }
+                assertThrows(EmpresaNaoExisteException.class,
+                                () -> servicoService.criar(CNPJ, CODIGO_VALIDO, requestDTO));
 
-    @Test
-    @DisplayName("Quando empresa tenta criar serviço que já existe")
-    void quandoCriamosServicoJaExistente() {
+                verify(servicoRepository, never()).save(any());
+                verify(servicoRepository, never())
+                                .existsByNomeAndEmpresa(any(), any());
+                verify(modelMapper, never())
+                                .map(any(), eq(Servico.class));
+        }
 
-        doNothing().when(authService)
-                .autenticarEmpresa(CNPJ, CODIGO_VALIDO);
+        @Test
+        @DisplayName("Quando alteramos serviço válido")
+        void quandoAlteramosServicoValido() {
 
-        when(empresaRepository.findByCnpj(CNPJ))
-                .thenReturn(Optional.of(empresa));
+                doNothing().when(authService)
+                                .autenticarEmpresa(CNPJ, CODIGO_VALIDO);
 
-        when(servicoRepository.existsByNomeAndEmpresa(
-                requestDTO.getNome(), empresa))
-                .thenReturn(true);
+                when(empresaRepository.findByCnpj(CNPJ))
+                                .thenReturn(Optional.of(empresa));
 
-        assertThrows(ServicoJaExisteException.class,
-                () -> servicoService.criar(CNPJ, CODIGO_VALIDO, requestDTO));
+                when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa))
+                                .thenReturn(Optional.of(servico));
 
-        verify(servicoRepository, never()).save(any());
-    }
+                doAnswer(invocation -> {
+                        ServicoPostPutRequestDTO dto = invocation.getArgument(0);
+                        Servico ent = invocation.getArgument(1);
 
-    @Test
-    @DisplayName("Quando tentamos criar serviço para empresa que não existe")
-    void quandoCriamosServicoEmpresaNaoExiste() {
+                        ent.setNome(dto.getNome());
+                        ent.setTipo(dto.getTipo());
+                        ent.setNivelUrgencia(dto.getNivelUrgencia());
+                        ent.setDescricao(dto.getDescricao());
+                        ent.setPrecoBase(dto.getPrecoBase());
+                        ent.setTipoPlano(dto.getTipoPlano());
+                        ent.setDuracaoEstimada(dto.getDuracaoEstimada());
 
+                        return null;
+                }).when(modelMapper).map(any(ServicoPostPutRequestDTO.class), any(Servico.class));
 
-        doNothing().when(authService)
-                .autenticarEmpresa(CNPJ, CODIGO_VALIDO);
+                when(modelMapper.map(servico, ServicoResponseDTO.class))
+                                .thenReturn(responseDTO);
 
-        when(empresaRepository.findByCnpj(CNPJ))
-                .thenReturn(Optional.empty());
+                ServicoResponseDTO resultado = servicoService.alterar(CNPJ, CODIGO_VALIDO, SERVICO_ID, requestDTO);
 
-        assertThrows(EmpresaNaoExisteException.class, () ->
-                servicoService.criar(CNPJ, CODIGO_VALIDO, requestDTO)
-        );
+                assertNotNull(resultado);
 
-        verify(servicoRepository, never()).save(any());
-        verify(servicoRepository, never())
-                .existsByNomeAndEmpresa(any(), any());
-        verify(modelMapper, never())
-                .map(any(), eq(Servico.class));
-    }
+                verify(servicoRepository).save(servico);
+        }
 
+        @Test
+        @DisplayName("Quando tentamos alterar serviço inexistente")
+        void quandoAlteramosServicoInexistente() {
 
-    @Test
-    @DisplayName("Quando alteramos serviço válido")
-    void quandoAlteramosServicoValido() {
+                doNothing().when(authService)
+                                .autenticarEmpresa(CNPJ, CODIGO_VALIDO);
 
-        doNothing().when(authService)
-                .autenticarEmpresa(CNPJ, CODIGO_VALIDO);
+                when(empresaRepository.findByCnpj(CNPJ))
+                                .thenReturn(Optional.of(empresa));
 
-        when(empresaRepository.findByCnpj(CNPJ))
-                .thenReturn(Optional.of(empresa));
+                when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa))
+                                .thenReturn(Optional.empty());
 
-        when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa))
-                .thenReturn(Optional.of(servico));
+                assertThrows(ServicoNaoExisteException.class,
+                                () -> servicoService.alterar(CNPJ, CODIGO_VALIDO, SERVICO_ID, requestDTO));
+        }
 
-        doAnswer(invocation -> {
-            ServicoPostPutRequestDTO dto = invocation.getArgument(0);
-            Servico ent = invocation.getArgument(1);
+        @Test
+        @DisplayName("Quando buscamos serviço válido")
+        void quandoBuscamosServicoValido() {
 
-            ent.setNome(dto.getNome());
-            ent.setTipo(dto.getTipo());
-            ent.setNivelUrgencia(dto.getNivelUrgencia());
-            ent.setDescricao(dto.getDescricao());
-            ent.setPrecoBase(dto.getPrecoBase());
-            ent.setTipoPlano(dto.getTipoPlano());
-            ent.setDuracaoEstimada(dto.getDuracaoEstimada());
+                when(empresaRepository.findByCnpj(CNPJ))
+                                .thenReturn(Optional.of(empresa));
 
-            return null;
-        }).when(modelMapper).map(any(ServicoPostPutRequestDTO.class), any(Servico.class));
+                when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa))
+                                .thenReturn(Optional.of(servico));
 
-        when(modelMapper.map(servico, ServicoResponseDTO.class))
-                .thenReturn(responseDTO);
+                when(modelMapper.map(servico, ServicoResponseDTO.class))
+                                .thenReturn(responseDTO);
 
-        ServicoResponseDTO resultado =
-                servicoService.alterar(CNPJ, CODIGO_VALIDO, SERVICO_ID, requestDTO);
+                ServicoResponseDTO resultado = servicoService.buscar(CNPJ, SERVICO_ID);
 
-        assertNotNull(resultado);
+                assertEquals(SERVICO_ID, resultado.getId());
+        }
 
-        verify(servicoRepository).save(servico);
-    }
+        @Test
+        @DisplayName("Quando listamos serviços da empresa")
+        void quandoListamosServicosEmpresa() {
 
-    @Test
-    @DisplayName("Quando tentamos alterar serviço inexistente")
-    void quandoAlteramosServicoInexistente() {
+                when(empresaRepository.findByCnpj(CNPJ))
+                                .thenReturn(Optional.of(empresa));
 
-        doNothing().when(authService)
-                .autenticarEmpresa(CNPJ, CODIGO_VALIDO);
+                when(servicoRepository.findByEmpresa(empresa))
+                                .thenReturn(List.of(servico));
 
-        when(empresaRepository.findByCnpj(CNPJ))
-                .thenReturn(Optional.of(empresa));
+                when(modelMapper.map(servico, ServicoResponseDTO.class))
+                                .thenReturn(responseDTO);
 
-        when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa))
-                .thenReturn(Optional.empty());
+                List<ServicoResponseDTO> resultado = servicoService.listar(CNPJ);
 
-        assertThrows(ServicoNaoExisteException.class,
-                () -> servicoService.alterar(CNPJ, CODIGO_VALIDO, SERVICO_ID, requestDTO));
-    }
+                assertEquals(1, resultado.size());
+        }
 
-    @Test
-    @DisplayName("Quando buscamos serviço válido")
-    void quandoBuscamosServicoValido() {
+        @Test
+        @DisplayName("Quando removemos serviço válido")
+        void quandoRemovemosServicoValido() {
 
-        when(empresaRepository.findByCnpj(CNPJ))
-                .thenReturn(Optional.of(empresa));
+                doNothing().when(authService)
+                                .autenticarEmpresa(CNPJ, CODIGO_VALIDO);
 
-        when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa))
-                .thenReturn(Optional.of(servico));
+                when(empresaRepository.findByCnpj(CNPJ))
+                                .thenReturn(Optional.of(empresa));
 
-        when(modelMapper.map(servico, ServicoResponseDTO.class))
-                .thenReturn(responseDTO);
+                when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa))
+                                .thenReturn(Optional.of(servico));
 
-        ServicoResponseDTO resultado =
-                servicoService.buscar(CNPJ, SERVICO_ID);
+                servicoService.remover(CNPJ, CODIGO_VALIDO, SERVICO_ID);
 
-        assertEquals(SERVICO_ID, resultado.getId());
-    }
+                verify(servicoRepository).delete(servico);
+        }
 
-    @Test
-    @DisplayName("Quando listamos serviços da empresa")
-    void quandoListamosServicosEmpresa() {
+        @Test
+        @DisplayName("Quando tentamos remover serviço que não existe")
+        void quandoRemovemosServicoInvalido() {
 
-        when(empresaRepository.findByCnpj(CNPJ))
-                .thenReturn(Optional.of(empresa));
+                doNothing().when(authService)
+                                .autenticarEmpresa(CNPJ, CODIGO_VALIDO);
 
-        when(servicoRepository.findByEmpresa(empresa))
-                .thenReturn(List.of(servico));
+                when(empresaRepository.findByCnpj(CNPJ))
+                                .thenReturn(Optional.of(empresa));
 
-        when(modelMapper.map(servico, ServicoResponseDTO.class))
-                .thenReturn(responseDTO);
+                when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa))
+                                .thenReturn(Optional.empty());
 
-        List<ServicoResponseDTO> resultado =
-                servicoService.listar(CNPJ);
+                assertThrows(ServicoNaoExisteException.class,
+                                () -> servicoService.remover(CNPJ, CODIGO_VALIDO, SERVICO_ID));
 
-        assertEquals(1, resultado.size());
-    }
+                verify(servicoRepository, never()).delete(any());
+        }
 
-    @Test
-    @DisplayName("Quando removemos serviço válido")
-    void quandoRemovemosServicoValido() {
+        @Test
+        @DisplayName("Quando tentamos remover serviço com código de acesso inválido")
+        void quandoRemovemosServicoComCodigoAcessoInvalido() {
 
-        doNothing().when(authService)
-                .autenticarEmpresa(CNPJ, CODIGO_VALIDO);
+                doThrow(CodigoDeAcessoInvalidoException.class)
+                                .when(authService)
+                                .autenticarEmpresa(CNPJ, CODIGO_INVALIDO);
 
-        when(empresaRepository.findByCnpj(CNPJ))
-                .thenReturn(Optional.of(empresa));
+                assertThrows(CodigoDeAcessoInvalidoException.class,
+                                () -> servicoService.remover(CNPJ, CODIGO_INVALIDO, SERVICO_ID));
 
-        when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa))
-                .thenReturn(Optional.of(servico));
+                verify(empresaRepository, never()).findByCnpj(any());
+                verify(servicoRepository, never()).delete(any());
+        }
 
-        servicoService.remover(CNPJ, CODIGO_VALIDO, SERVICO_ID);
+        @Test
+        @DisplayName("Quando alteramos a disponibilidade para ativo, deve notificar priorizando Premium")
+        void quandoAlteramosDisponibilidadeAtivandoComInteresses() {
+                servico.setAtivo(false);
 
-        verify(servicoRepository).delete(servico);
-    }
+                Cliente clientePremium = Cliente.builder().nome("João").planoAtual(TipoPlano.PREMIUM).build();
+                Cliente clienteBasico = Cliente.builder().nome("Maria").planoAtual(TipoPlano.BASICO).build();
 
-    @Test
-    @DisplayName("Quando tentamos remover serviço que não existe")
-    void quandoRemovemosServicoInvalido() {
+                Interesse intBasico = new Interesse(clienteBasico, servico);
+                intBasico.setDataInteresse(java.time.LocalDateTime.now().minusDays(2));
 
-        doNothing().when(authService)
-                .autenticarEmpresa(CNPJ, CODIGO_VALIDO);
+                Interesse intPremium = new Interesse(clientePremium, servico);
+                intPremium.setDataInteresse(java.time.LocalDateTime.now().minusDays(1));
 
-        when(empresaRepository.findByCnpj(CNPJ))
-                .thenReturn(Optional.of(empresa));
+                List<Interesse> interesses = new java.util.ArrayList<>(List.of(intBasico, intPremium));
 
-        when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa))
-                .thenReturn(Optional.empty());
+                doNothing().when(authService).autenticarEmpresa(CNPJ, CODIGO_VALIDO);
+                when(empresaRepository.findByCnpj(CNPJ)).thenReturn(Optional.of(empresa));
+                when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa)).thenReturn(Optional.of(servico));
+                when(interesseRepository.findByServicoAndNotificadoFalse(servico)).thenReturn(interesses);
+                when(modelMapper.map(servico, ServicoResponseDTO.class)).thenReturn(responseDTO);
 
-        assertThrows(ServicoNaoExisteException.class,
-                () -> servicoService.remover(CNPJ, CODIGO_VALIDO, SERVICO_ID));
+                servicoService.alterarDisponibilidade(CNPJ, CODIGO_VALIDO, SERVICO_ID, true);
 
-        verify(servicoRepository, never()).delete(any());
-    }
+                assertTrue(servico.getAtivo());
 
-    @Test
-    @DisplayName("Quando tentamos remover serviço com código de acesso inválido")
-    void quandoRemovemosServicoComCodigoAcessoInvalido() {
+                org.mockito.ArgumentCaptor<List> captor = org.mockito.ArgumentCaptor.forClass(List.class);
+                verify(interesseRepository).saveAll(captor.capture());
 
-        doThrow(CodigoDeAcessoInvalidoException.class)
-                .when(authService)
-                .autenticarEmpresa(CNPJ, CODIGO_INVALIDO);
+                List<Interesse> salvos = captor.getValue();
+                assertEquals(2, salvos.size());
 
-        assertThrows(CodigoDeAcessoInvalidoException.class,
-                () -> servicoService.remover(CNPJ, CODIGO_INVALIDO, SERVICO_ID));
+                assertEquals(TipoPlano.PREMIUM, salvos.get(0).getCliente().getPlanoAtual());
+                assertTrue(salvos.get(0).isNotificado());
+                assertTrue(salvos.get(1).isNotificado());
+        }
 
-        verify(empresaRepository, never()).findByCnpj(any());
-        verify(servicoRepository, never()).delete(any());
-    }
+        @Test
+        @DisplayName("Quando alteramos a disponibilidade, não deve notificar se já estava ativo")
+        void quandoAlteramosDisponibilidadeSemMudarEstado() {
+                servico.setAtivo(true);
 
-    @Test
-    @DisplayName("Quando alteramos a disponibilidade para ativo, deve notificar priorizando Premium")
-    void quandoAlteramosDisponibilidadeAtivandoComInteresses() {
-        servico.setAtivo(false);
-        
-        Cliente clientePremium = Cliente.builder().nome("João").planoAtual(TipoPlano.PREMIUM).build();
-        Cliente clienteBasico = Cliente.builder().nome("Maria").planoAtual(TipoPlano.BASICO).build();
+                doNothing().when(authService).autenticarEmpresa(CNPJ, CODIGO_VALIDO);
+                when(empresaRepository.findByCnpj(CNPJ)).thenReturn(Optional.of(empresa));
+                when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa)).thenReturn(Optional.of(servico));
+                when(modelMapper.map(servico, ServicoResponseDTO.class)).thenReturn(responseDTO);
 
-        Interesse intBasico = new Interesse(clienteBasico, servico);
-        intBasico.setDataInteresse(java.time.LocalDateTime.now().minusDays(2)); 
-        
-        Interesse intPremium = new Interesse(clientePremium, servico);
-        intPremium.setDataInteresse(java.time.LocalDateTime.now().minusDays(1));
+                servicoService.alterarDisponibilidade(CNPJ, CODIGO_VALIDO, SERVICO_ID, true);
 
-        List<Interesse> interesses = new java.util.ArrayList<>(List.of(intBasico, intPremium));
+                verify(interesseRepository, never()).findByServicoAndNotificadoFalse(any());
+                verify(interesseRepository, never()).saveAll(any());
+        }
 
-        doNothing().when(authService).autenticarEmpresa(CNPJ, CODIGO_VALIDO);
-        when(empresaRepository.findByCnpj(CNPJ)).thenReturn(Optional.of(empresa));
-        when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa)).thenReturn(Optional.of(servico));
-        when(interesseRepository.findByServicoAndNotificadoFalse(servico)).thenReturn(interesses);
-        when(modelMapper.map(servico, ServicoResponseDTO.class)).thenReturn(responseDTO);
+        @Test
+        @DisplayName("Quando alteramos a disponibilidade para inativo, NÃO deve notificar ninguém")
+        void quandoAlteramosParaInativoNaoNotifica() {
+                servico.setAtivo(true);
 
-        servicoService.alterarDisponibilidade(CNPJ, CODIGO_VALIDO, SERVICO_ID, true);
+                doNothing().when(authService).autenticarEmpresa(CNPJ, CODIGO_VALIDO);
+                when(empresaRepository.findByCnpj(CNPJ)).thenReturn(Optional.of(empresa));
+                when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa)).thenReturn(Optional.of(servico));
+                when(modelMapper.map(servico, ServicoResponseDTO.class)).thenReturn(responseDTO);
 
-        assertTrue(servico.getAtivo());
-        
-        org.mockito.ArgumentCaptor<List> captor = org.mockito.ArgumentCaptor.forClass(List.class);
-        verify(interesseRepository).saveAll(captor.capture());
-        
-        List<Interesse> salvos = captor.getValue();
-        assertEquals(2, salvos.size());
-        
-        assertEquals(TipoPlano.PREMIUM, salvos.get(0).getCliente().getPlanoAtual());
-        assertTrue(salvos.get(0).isNotificado());
-        assertTrue(salvos.get(1).isNotificado());
-    }
-    
-    @Test
-    @DisplayName("Quando alteramos a disponibilidade, não deve notificar se já estava ativo")
-    void quandoAlteramosDisponibilidadeSemMudarEstado() {
-        servico.setAtivo(true); 
-        
-        doNothing().when(authService).autenticarEmpresa(CNPJ, CODIGO_VALIDO);
-        when(empresaRepository.findByCnpj(CNPJ)).thenReturn(Optional.of(empresa));
-        when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa)).thenReturn(Optional.of(servico));
-        when(modelMapper.map(servico, ServicoResponseDTO.class)).thenReturn(responseDTO);
+                servicoService.alterarDisponibilidade(CNPJ, CODIGO_VALIDO, SERVICO_ID, false);
 
-        servicoService.alterarDisponibilidade(CNPJ, CODIGO_VALIDO, SERVICO_ID, true); 
+                assertFalse(servico.getAtivo(), "O serviço deve ter ficado inativo");
 
-        verify(interesseRepository, never()).findByServicoAndNotificadoFalse(any());
-        verify(interesseRepository, never()).saveAll(any());
-    }
+                verify(interesseRepository, never()).findByServicoAndNotificadoFalse(any());
+                verify(interesseRepository, never()).saveAll(any());
+        }
 
-    @Test
-    @DisplayName("Quando alteramos a disponibilidade para inativo, NÃO deve notificar ninguém")
-    void quandoAlteramosParaInativoNaoNotifica() {
-        servico.setAtivo(true); 
-        
-        doNothing().when(authService).autenticarEmpresa(CNPJ, CODIGO_VALIDO);
-        when(empresaRepository.findByCnpj(CNPJ)).thenReturn(Optional.of(empresa));
-        when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa)).thenReturn(Optional.of(servico));
-        when(modelMapper.map(servico, ServicoResponseDTO.class)).thenReturn(responseDTO);
+        @Test
+        @DisplayName("Quando tentamos alterar disponibilidade de um serviço que não existe")
+        void quandoAlteramosDisponibilidadeServicoInexistente() {
+                doNothing().when(authService).autenticarEmpresa(CNPJ, CODIGO_VALIDO);
+                when(empresaRepository.findByCnpj(CNPJ)).thenReturn(Optional.of(empresa));
+                when(servicoRepository.findByIdAndEmpresa(999L, empresa)).thenReturn(Optional.empty());
 
-        servicoService.alterarDisponibilidade(CNPJ, CODIGO_VALIDO, SERVICO_ID, false); 
+                assertThrows(ServicoNaoExisteException.class,
+                                () -> servicoService.alterarDisponibilidade(CNPJ, CODIGO_VALIDO, 999L, false));
+        }
 
-        assertFalse(servico.getAtivo(), "O serviço deve ter ficado inativo");
-        
-        verify(interesseRepository, never()).findByServicoAndNotificadoFalse(any());
-        verify(interesseRepository, never()).saveAll(any());
-    }
+        @Test
+        @DisplayName("Quando ativamos um serviço, mas a fila de interessados está vazia")
+        void quandoAtivamosServicoComFilaVazia() {
+                // Arrange
+                servico.setAtivo(false);
 
-    @Test
-    @DisplayName("Quando tentamos alterar disponibilidade de um serviço que não existe")
-    void quandoAlteramosDisponibilidadeServicoInexistente() {
-        doNothing().when(authService).autenticarEmpresa(CNPJ, CODIGO_VALIDO);
-        when(empresaRepository.findByCnpj(CNPJ)).thenReturn(Optional.of(empresa));
-        when(servicoRepository.findByIdAndEmpresa(999L, empresa)).thenReturn(Optional.empty()); 
+                doNothing().when(authService).autenticarEmpresa(CNPJ, CODIGO_VALIDO);
+                when(empresaRepository.findByCnpj(CNPJ)).thenReturn(Optional.of(empresa));
+                when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa)).thenReturn(Optional.of(servico));
 
-        assertThrows(ServicoNaoExisteException.class, 
-                () -> servicoService.alterarDisponibilidade(CNPJ, CODIGO_VALIDO, 999L, false));
-    }
+                when(interesseRepository.findByServicoAndNotificadoFalse(servico))
+                                .thenReturn(new java.util.ArrayList<>());
+                when(modelMapper.map(servico, ServicoResponseDTO.class)).thenReturn(responseDTO);
 
-    @Test
-    @DisplayName("Quando ativamos um serviço, mas a fila de interessados está vazia")
-    void quandoAtivamosServicoComFilaVazia() {
-        // Arrange
-        servico.setAtivo(false); 
-        
-        doNothing().when(authService).autenticarEmpresa(CNPJ, CODIGO_VALIDO);
-        when(empresaRepository.findByCnpj(CNPJ)).thenReturn(Optional.of(empresa));
-        when(servicoRepository.findByIdAndEmpresa(SERVICO_ID, empresa)).thenReturn(Optional.of(servico));
-        
-        when(interesseRepository.findByServicoAndNotificadoFalse(servico)).thenReturn(new java.util.ArrayList<>());
-        when(modelMapper.map(servico, ServicoResponseDTO.class)).thenReturn(responseDTO);
+                servicoService.alterarDisponibilidade(CNPJ, CODIGO_VALIDO, SERVICO_ID, true);
 
-        servicoService.alterarDisponibilidade(CNPJ, CODIGO_VALIDO, SERVICO_ID, true);
-
-        assertTrue(servico.getAtivo());
-        verify(interesseRepository).saveAll(anyList()); 
-    }
+                assertTrue(servico.getAtivo());
+                verify(interesseRepository).saveAll(anyList());
+        }
 
 }

@@ -12,7 +12,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.bind.annotation.RequestMapping;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -23,9 +22,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @AutoConfigureMockMvc
 @DisplayName("Testes do controlador de Admin")
-public class AdminControllerTest {
+class AdminControllerTest {
 
-    final String URI_ADMINS = "/admin";
+    static final String URL_ADMINS = "/admin";
 
     @Autowired
     MockMvc driver;
@@ -62,18 +61,16 @@ public class AdminControllerTest {
         void quandoCriamosAdminValido() throws Exception {
 
             String responseJsonString = driver.perform(
-                            post(URI_ADMINS)
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .content(objectMapper.writeValueAsString(adminPostPutRequestDTO))
-                    )
+                    post(URL_ADMINS)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(adminPostPutRequestDTO)))
                     .andExpect(status().isCreated())
                     .andDo(print())
                     .andReturn()
                     .getResponse()
                     .getContentAsString();
 
-            AdminResponseDTO resultado =
-                    objectMapper.readValue(responseJsonString, AdminResponseDTO.class);
+            AdminResponseDTO resultado = objectMapper.readValue(responseJsonString, AdminResponseDTO.class);
 
             assertEquals("Admin Teste", resultado.getNome());
         }
@@ -85,17 +82,14 @@ public class AdminControllerTest {
             adminRepository.save(Admin.builder()
                     .nome("Admin Existente")
                     .senha("123456")
-                    .build()
-            );
+                    .build());
 
             driver.perform(
-                            post(URI_ADMINS)
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .content(objectMapper.writeValueAsString(adminPostPutRequestDTO))
-                    )
+                    post(URL_ADMINS)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(adminPostPutRequestDTO)))
                     .andExpect(status().isBadRequest())
                     .andDo(print());
         }
     }
 }
-

@@ -30,15 +30,24 @@ class ChamadoServiceImplTest {
     @InjectMocks
     private ChamadoServiceImpl service;
 
-    @Mock  private ApplicationEventPublisher eventPublisher;
-    @Mock private ChamadoRepository chamadoRepository;
-    @Mock private ClienteRepository clienteRepository;
-    @Mock private EmpresaRepository empresaRepository;
-    @Mock private ServicoRepository servicoRepository;
-    @Mock private PagamentoRepository pagamentoRepository;
-    @Mock private TecnicoRepository tecnicoRepository;
-    @Mock private AuthService authService;
-    @Mock private ModelMapper modelMapper;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+    @Mock
+    private ChamadoRepository chamadoRepository;
+    @Mock
+    private ClienteRepository clienteRepository;
+    @Mock
+    private EmpresaRepository empresaRepository;
+    @Mock
+    private ServicoRepository servicoRepository;
+    @Mock
+    private PagamentoRepository pagamentoRepository;
+    @Mock
+    private TecnicoRepository tecnicoRepository;
+    @Mock
+    private AuthService authService;
+    @Mock
+    private ModelMapper modelMapper;
 
     private Cliente cliente;
     private Empresa empresa;
@@ -214,7 +223,6 @@ class ChamadoServiceImplTest {
                 () -> service.confirmarPagamento(100L, dto, auth));
     }
 
-
     // --- NOVOS TESTES: STATE PATTERN E TRANSIÇÕES ---
 
     @Test
@@ -269,7 +277,7 @@ class ChamadoServiceImplTest {
         assertThrows(TecnicoNaoInformadoException.class, () -> service.atualizar(100L, dto, auth));
     }
 
-    //  CANCELAMENTO (DELETAR)
+    // CANCELAMENTO (DELETAR)
 
     @Test
     void deletarSucessoQuandoAindaNaoAtendimento() {
@@ -301,18 +309,6 @@ class ChamadoServiceImplTest {
         when(chamadoRepository.findById(100L)).thenReturn(Optional.of(chamado));
 
         assertThrows(AcessoNegadoException.class, () -> service.deletar(100L, auth));
-    }
-
-    @Test
-    void cancelarSucesso() {
-        // Arrange
-        AuthRequestDTO auth = AuthRequestDTO.cliente(1L, "123");
-        chamado.setStatus(StatusChamado.RECEBIDO); // Status que permite cancelamento
-
-        when(chamadoRepository.findById(100L)).thenReturn(Optional.of(chamado));
-
-        service.deletar(100L, auth);
-        verify(chamadoRepository).delete(chamado);
     }
 
     @Test
@@ -360,21 +356,15 @@ class ChamadoServiceImplTest {
     @Test
     void devePublicarEventoQuandoEntrarEmAtendimento() {
 
-        Chamado chamado = new Chamado();
-        chamado.setId(1L);
         chamado.setStatus(StatusChamado.AGUARDANDO_TECNICO);
-
-        Cliente cliente = new Cliente();
-        cliente.setId(10L);
-        chamado.setCliente(cliente);
 
         ChamadoPatchRequestDTO dto = new ChamadoPatchRequestDTO();
         dto.setStatusAcao("AVANCAR");
         dto.setTecnicoId(1L);
 
-        AuthRequestDTO auth = AuthRequestDTO.cliente(10L, "123");
+        AuthRequestDTO auth = AuthRequestDTO.cliente(1L, "123");
 
-        when(chamadoRepository.findById(1L))
+        when(chamadoRepository.findById(100L))
                 .thenReturn(Optional.of(chamado));
 
         when(tecnicoRepository.findById(1L))
@@ -388,7 +378,7 @@ class ChamadoServiceImplTest {
 
         doNothing().when(authService).autenticar(any());
 
-        service.atualizar(1L, dto, auth);
+        service.atualizar(100L, dto, auth);
 
         verify(eventPublisher)
                 .publishEvent(any(ChamadoEmAtendimentoEvent.class));

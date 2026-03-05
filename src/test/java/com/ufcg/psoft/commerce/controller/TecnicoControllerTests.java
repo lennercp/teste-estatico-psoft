@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("Testes do Controlador de Técnicos")
 class TecnicoControllerTests {
 
-    final String URI_TECNICOS = "/tecnicos";
+    static final String URI_TECNICOS = "/tecnicos";
 
     @Autowired
     private MockMvc driver;

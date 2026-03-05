@@ -1,6 +1,5 @@
 package com.ufcg.psoft.commerce.service.chamado;
 
-//import com.ufcg.psoft.commerce.dto.ChamadoPatchRequestDTO;
 import com.ufcg.psoft.commerce.dto.*;
 import org.springframework.http.ResponseEntity;
 

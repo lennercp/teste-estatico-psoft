@@ -15,7 +15,7 @@ import org.modelmapper.ModelMapper;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class ChamadoEventListenerImplTest {
+class ChamadoEventListenerImplTest {
     @Mock
     private NotificacoesServiceImpl notificacaoService;
 

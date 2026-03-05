@@ -2,6 +2,7 @@ package com.ufcg.psoft.commerce.controller;
 
 import com.ufcg.psoft.commerce.dto.ClientePatchRequestDTO;
 import com.ufcg.psoft.commerce.dto.ClientePostPutRequestDTO;
+import com.ufcg.psoft.commerce.dto.ClienteResponseDTO;
 import com.ufcg.psoft.commerce.service.cliente.ClienteService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -14,19 +15,16 @@ import com.ufcg.psoft.commerce.model.TipoServico;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping(
-        value = "/clientes",
-        produces = MediaType.APPLICATION_JSON_VALUE
-)
+@RequestMapping(value = "/clientes", produces = MediaType.APPLICATION_JSON_VALUE)
 public class ClienteController {
     private final ClienteService clienteService;
 
-    public ClienteController(ClienteService clienteService){
+    public ClienteController(ClienteService clienteService) {
         this.clienteService = clienteService;
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> recuperarCliente(
+    public ResponseEntity<ClienteResponseDTO> recuperarCliente(
             @PathVariable Long id) {
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -34,7 +32,7 @@ public class ClienteController {
     }
 
     @GetMapping("")
-    public ResponseEntity<?> listarClientes(
+    public ResponseEntity<List<ClienteResponseDTO>> listarClientes(
             @RequestParam(required = false, defaultValue = "") String nome) {
 
         if (nome != null && !nome.isEmpty()) {
@@ -48,7 +46,7 @@ public class ClienteController {
     }
 
     @PostMapping()
-    public ResponseEntity<?> criarCliente(
+    public ResponseEntity<ClienteResponseDTO> criarCliente(
             @RequestBody @Valid ClientePostPutRequestDTO clientePostPutRequestDto) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -56,7 +54,7 @@ public class ClienteController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> atualizarCliente(
+    public ResponseEntity<ClienteResponseDTO> atualizarCliente(
             @PathVariable Long id,
             @RequestParam String codigo,
             @RequestBody @Valid ClientePostPutRequestDTO clientePostPutRequestDto) {
@@ -66,27 +64,25 @@ public class ClienteController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> excluirCliente(
+    public ResponseEntity<Void> excluirCliente(
             @PathVariable Long id,
             @RequestParam String codigo) {
         clienteService.remover(id, codigo);
-        return ResponseEntity
-                .status(HttpStatus.NO_CONTENT)
-                .body("");
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<?> alterarParcialCliente(
+    public ResponseEntity<ClienteResponseDTO> alterarParcialCliente(
             @PathVariable Long id,
             @RequestParam String codigo,
-            @RequestBody @Valid ClientePatchRequestDTO ClientePatchRequestDTO) {
+            @RequestBody @Valid ClientePatchRequestDTO clientePatchRequestDto) {
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(clienteService.alterarParcial(id, codigo, ClientePatchRequestDTO));
+                .body(clienteService.alterarParcial(id, codigo, clientePatchRequestDto));
     }
 
     @PatchMapping("/{id}/proxCiclo")
-    public ResponseEntity<?> proxCicloCobrancaCliente(
+    public ResponseEntity<ClienteResponseDTO> proxCicloCobrancaCliente(
             @PathVariable Long id) {
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -101,8 +97,7 @@ public class ClienteController {
             @RequestParam(value = "nivelUrgencia", required = false) NivelUrgencia nivelUrgencia,
             @RequestParam(value = "empresaCnpj", required = false) String empresaCnpj,
             @RequestParam(value = "precoMin", required = false) Double precoMin,
-            @RequestParam(value = "precoMax", required = false) Double precoMax
-    ) {
+            @RequestParam(value = "precoMax", required = false) Double precoMax) {
         List<ServicoResponseDTO> servicos = clienteService.listarServicosDisponiveis(
                 clienteId,
                 codigoAcesso,
@@ -110,8 +105,7 @@ public class ClienteController {
                 nivelUrgencia,
                 empresaCnpj,
                 precoMin,
-                precoMax
-        );
+                precoMax);
 
         return ResponseEntity.ok(servicos);
     }

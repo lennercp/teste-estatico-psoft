@@ -29,7 +29,6 @@ public class ChamadoServiceImpl implements ChamadoService {
     private final EmpresaRepository empresaRepository;
     private final PagamentoRepository pagamentoRepository;
     private final ServicoRepository servicoRepository;
-    private final TecnicoRepository tecnicoRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     private void autorizarAcessoChamado(Chamado chamado, AuthRequestDTO auth) {
@@ -84,7 +83,7 @@ public class ChamadoServiceImpl implements ChamadoService {
         return modelMapper.map(chamadoRepository.save(chamado), ChamadoResponseDTO.class);
     }
 
-    private void avancarStatus(Chamado chamado, Long tecnicoId) {
+    private void avancarStatus(Chamado chamado) {
 
         if (chamado.getStatus() == StatusChamado.AGUARDANDO_TECNICO) {
             throw new ChamadoBloqueadoParaAvancarStatus();
@@ -119,7 +118,7 @@ public class ChamadoServiceImpl implements ChamadoService {
         if (dto.getStatusAcao() != null) {
             String acao = dto.getStatusAcao().toUpperCase();
             if (acao.equals("AVANCAR")) {
-                this.avancarStatus(chamado, dto.getTecnicoId());
+                this.avancarStatus(chamado);
             } else if (acao.equals("CANCELAR")) {
                 this.cancelarStatus(chamado, auth.getClienteId());
             }

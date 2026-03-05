@@ -19,7 +19,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Testes do Service de Admin")
-public class AdminServiceImplTest {
+class AdminServiceImplTest {
 
 
     @Mock
