@@ -386,7 +386,6 @@ class ChamadoControllerTest {
 
             ChamadoPatchRequestDTO dto = new ChamadoPatchRequestDTO();
             dto.setStatusAcao("AVANCAR");
-            dto.setTecnicoId(tecnico.getId());
             dto.setCodigo(empresa.getCodigoAcesso());
 
             driver.perform(patch(URL_CHAMADOS + "/" + chamado.getId())
@@ -445,7 +444,6 @@ class ChamadoControllerTest {
 
             ChamadoPatchRequestDTO dto = new ChamadoPatchRequestDTO();
             dto.setStatusAcao("AVANCAR");
-            dto.setTecnicoId(null);
             dto.setCodigo(empresa.getCodigoAcesso());
 
             driver.perform(patch(URL_CHAMADOS + "/" + chamado.getId())

@@ -10,6 +10,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface TecnicoRepository extends JpaRepository<Tecnico, Long> {
-    Optional<Tecnico> findFirstByDisponibilidadeOrderByDisponibilidadeAtualizadaEmAsc(
+    Optional<Tecnico> findFirstByDisponibilidadeAndEmpresasAprovadorasIsNotEmptyOrderByDisponibilidadeAtualizadaEmAsc(
             DisponibilidadeStatus disponibilidade);
 }

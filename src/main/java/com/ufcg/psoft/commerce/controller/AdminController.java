@@ -1,4 +1,5 @@
 package com.ufcg.psoft.commerce.controller;
+
 import com.ufcg.psoft.commerce.dto.AdminPostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.AdminResponseDTO;
 import com.ufcg.psoft.commerce.service.admin.AdminService;
@@ -26,4 +27,3 @@ public class AdminController {
                 .body(response);
     }
 }
-

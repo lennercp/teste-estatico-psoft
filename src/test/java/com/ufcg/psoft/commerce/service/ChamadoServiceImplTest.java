@@ -1,7 +1,6 @@
 package com.ufcg.psoft.commerce.service;
 
 import com.ufcg.psoft.commerce.dto.*;
-import com.ufcg.psoft.commerce.events.ChamadoEmAtendimentoEvent;
 import com.ufcg.psoft.commerce.exception.*;
 import com.ufcg.psoft.commerce.model.*;
 import com.ufcg.psoft.commerce.model.state.StatusChamado;
@@ -22,6 +21,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -109,9 +110,10 @@ class ChamadoServiceImplTest {
     @Test
     void criarNaoCliente() {
         AuthRequestDTO auth = AuthRequestDTO.admin("123");
+        ChamadoPostPutRequestDTO dto = new ChamadoPostPutRequestDTO();
 
         assertThrows(AcessoNegadoException.class,
-                () -> service.criar(new ChamadoPostPutRequestDTO(), auth));
+                () -> service.criar(dto, auth));
     }
 
     @Test
@@ -243,26 +245,6 @@ class ChamadoServiceImplTest {
     }
 
     @Test
-    void atualizarAvancarParaAtendimentoSucessoComTecnico() {
-        AuthRequestDTO auth = AuthRequestDTO.empresa("111", "123");
-        chamado.setStatus(StatusChamado.AGUARDANDO_TECNICO);
-        Tecnico tecnico = Tecnico.builder().id(50L).build();
-
-        when(chamadoRepository.findById(100L)).thenReturn(Optional.of(chamado));
-        when(tecnicoRepository.findById(50L)).thenReturn(Optional.of(tecnico));
-
-        ChamadoPatchRequestDTO dto = ChamadoPatchRequestDTO.builder()
-                .statusAcao("AVANCAR")
-                .tecnicoId(50L)
-                .build();
-
-        service.atualizar(100L, dto, auth);
-
-        assertEquals(StatusChamado.ATENDIMENTO, chamado.getStatus());
-        assertEquals(tecnico, chamado.getTecnico());
-    }
-
-    @Test
     void atualizarAvancarParaAtendimentoErroSemTecnico() {
         AuthRequestDTO auth = AuthRequestDTO.empresa("111", "123");
         chamado.setStatus(StatusChamado.AGUARDANDO_TECNICO);
@@ -271,10 +253,9 @@ class ChamadoServiceImplTest {
 
         ChamadoPatchRequestDTO dto = ChamadoPatchRequestDTO.builder()
                 .statusAcao("AVANCAR")
-                .tecnicoId(null)
                 .build();
 
-        assertThrows(TecnicoNaoInformadoException.class, () -> service.atualizar(100L, dto, auth));
+        assertThrows(ChamadoBloqueadoParaAvancarStatus.class, () -> service.atualizar(100L, dto, auth));
     }
 
     // CANCELAMENTO (DELETAR)
@@ -351,36 +332,5 @@ class ChamadoServiceImplTest {
         assertThrows(ChamadoConcluidoNaoCanceladoException.class, () -> {
             service.deletar(100L, auth);
         });
-    }
-
-    @Test
-    void devePublicarEventoQuandoEntrarEmAtendimento() {
-
-        chamado.setStatus(StatusChamado.AGUARDANDO_TECNICO);
-
-        ChamadoPatchRequestDTO dto = new ChamadoPatchRequestDTO();
-        dto.setStatusAcao("AVANCAR");
-        dto.setTecnicoId(1L);
-
-        AuthRequestDTO auth = AuthRequestDTO.cliente(1L, "123");
-
-        when(chamadoRepository.findById(100L))
-                .thenReturn(Optional.of(chamado));
-
-        when(tecnicoRepository.findById(1L))
-                .thenReturn(Optional.of(new Tecnico()));
-
-        when(chamadoRepository.save(any()))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
-        when(modelMapper.map(any(), eq(ChamadoResponseDTO.class)))
-                .thenReturn(new ChamadoResponseDTO());
-
-        doNothing().when(authService).autenticar(any());
-
-        service.atualizar(100L, dto, auth);
-
-        verify(eventPublisher)
-                .publishEvent(any(ChamadoEmAtendimentoEvent.class));
     }
 }

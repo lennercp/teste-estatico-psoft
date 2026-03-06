@@ -16,17 +16,11 @@ public class ChamadoPatchRequestDTO {
     @JsonProperty("endereco")
     private String endereco;
 
-    @JsonProperty("tecnico_id")
-    private Long tecnicoId; // Para quando a empresa/admin for atribuir um técnico
-
     @JsonProperty("status_acao")
-    private String statusAcao; //"AVANCAR", "CANCELAR"
+    private String statusAcao; // "AVANCAR", "CANCELAR"
 
     @JsonProperty("codigo")
-    @Pattern(
-            regexp = "^\\d{6}$",
-            message = "Codigo de acesso deve ter exatamente 6 digitos numericos"
-    )
+    @Pattern(regexp = "^\\d{6}$", message = "Codigo de acesso deve ter exatamente 6 digitos numericos")
     private String codigo;
 
     public String getEndereco() {

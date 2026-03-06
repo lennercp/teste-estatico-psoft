@@ -1,7 +1,9 @@
 package com.ufcg.psoft.commerce.service;
 
+import com.ufcg.psoft.commerce.events.ChamadoEmAtendimentoEvent;
 import com.ufcg.psoft.commerce.model.Chamado;
 import com.ufcg.psoft.commerce.model.DisponibilidadeStatus;
+import com.ufcg.psoft.commerce.model.Empresa;
 import com.ufcg.psoft.commerce.model.Tecnico;
 import com.ufcg.psoft.commerce.model.state.StatusChamado;
 import com.ufcg.psoft.commerce.repository.ChamadoRepository;
@@ -13,12 +15,16 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -36,16 +42,30 @@ class AtribuicaoServiceImplTest {
     @Mock
     private TecnicoRepository tecnicoRepository;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private Chamado chamado;
     private Tecnico tecnico;
 
     @BeforeEach
     void setup() {
+        Empresa empresa = Empresa.builder()
+                .cnpj("12.345.678/0001-99")
+                .nomeFantasia("Empresa Teste")
+                .endereco("Rua Teste, 1")
+                .codigoAcesso("111111")
+                .build();
+
+        Set<Empresa> empresasAprovadoras = new HashSet<>();
+        empresasAprovadoras.add(empresa);
+
         tecnico = Tecnico.builder()
                 .id(1L)
                 .nomeCompleto("Tecnico Teste")
                 .disponibilidade(DisponibilidadeStatus.ATIVO)
                 .disponibilidadeAtualizadaEm(LocalDateTime.now().minusHours(1))
+                .empresasAprovadoras(empresasAprovadoras)
                 .build();
 
         chamado = Chamado.builder()
@@ -62,10 +82,11 @@ class AtribuicaoServiceImplTest {
     class ProcessarChamadoEmAndamento {
 
         @Test
-        @DisplayName("Deve atribuir técnico ATIVO ao chamado e mudar disponibilidade para DESCANSO")
+        @DisplayName("Deve atribuir técnico ATIVO aprovado ao chamado, mudar disponibilidade para DESCANSO e publicar evento")
         void comTecnicoDisponivel() {
-            when(tecnicoRepository.findFirstByDisponibilidadeOrderByDisponibilidadeAtualizadaEmAsc(
-                    DisponibilidadeStatus.ATIVO))
+            when(tecnicoRepository
+                    .findFirstByDisponibilidadeAndEmpresasAprovadorasIsNotEmptyOrderByDisponibilidadeAtualizadaEmAsc(
+                            DisponibilidadeStatus.ATIVO))
                     .thenReturn(Optional.of(tecnico));
 
             service.processarChamadoEmAndamento(chamado);
@@ -76,18 +97,26 @@ class AtribuicaoServiceImplTest {
             assertEquals(StatusChamado.ATENDIMENTO, chamado.getStatus());
             // A disponibilidade do técnico mudou para DESCANSO
             assertEquals(DisponibilidadeStatus.DESCANSO, tecnico.getDisponibilidade());
-            verify(tecnicoRepository).findFirstByDisponibilidadeOrderByDisponibilidadeAtualizadaEmAsc(
-                    DisponibilidadeStatus.ATIVO);
+
+            // O evento foi publicado com o chamado correto
+            ArgumentCaptor<ChamadoEmAtendimentoEvent> eventCaptor = ArgumentCaptor
+                    .forClass(ChamadoEmAtendimentoEvent.class);
+            verify(eventPublisher).publishEvent(eventCaptor.capture());
+            assertSame(chamado, eventCaptor.getValue().getChamado());
+
+            verify(tecnicoRepository)
+                    .findFirstByDisponibilidadeAndEmpresasAprovadorasIsNotEmptyOrderByDisponibilidadeAtualizadaEmAsc(
+                            DisponibilidadeStatus.ATIVO);
         }
 
         @Test
-        @DisplayName("Não deve alterar o chamado quando não há técnico disponível (Optional vazio)")
+        @DisplayName("Não deve alterar o chamado nem publicar evento quando não há técnico aprovado disponível")
         void semTecnicoDisponivel() {
-            when(tecnicoRepository.findFirstByDisponibilidadeOrderByDisponibilidadeAtualizadaEmAsc(
-                    DisponibilidadeStatus.ATIVO))
+            when(tecnicoRepository
+                    .findFirstByDisponibilidadeAndEmpresasAprovadorasIsNotEmptyOrderByDisponibilidadeAtualizadaEmAsc(
+                            DisponibilidadeStatus.ATIVO))
                     .thenReturn(Optional.empty());
 
-            // Guarda o status original para comparar depois
             StatusChamado statusAntes = chamado.getStatus();
 
             service.processarChamadoEmAndamento(chamado);
@@ -95,8 +124,13 @@ class AtribuicaoServiceImplTest {
             // Nada deve ter mudado no chamado
             assertNull(chamado.getTecnico());
             assertEquals(statusAntes, chamado.getStatus());
-            verify(tecnicoRepository).findFirstByDisponibilidadeOrderByDisponibilidadeAtualizadaEmAsc(
-                    DisponibilidadeStatus.ATIVO);
+
+            // Nenhum evento deve ter sido publicado
+            verify(eventPublisher, never()).publishEvent(any());
+
+            verify(tecnicoRepository)
+                    .findFirstByDisponibilidadeAndEmpresasAprovadorasIsNotEmptyOrderByDisponibilidadeAtualizadaEmAsc(
+                            DisponibilidadeStatus.ATIVO);
         }
     }
 
@@ -108,7 +142,7 @@ class AtribuicaoServiceImplTest {
     class ProcessarTecnicoAtivo {
 
         @Test
-        @DisplayName("Deve atribuir o chamado mais antigo ao técnico e mudar disponibilidade para DESCANSO")
+        @DisplayName("Deve atribuir o chamado mais antigo ao técnico aprovado e mudar disponibilidade para DESCANSO")
         void comChamadoAguardando() {
             when(chamadoRepository.findFirstByStatusOrderByDataAtualizacaoAsc(
                     StatusChamado.AGUARDANDO_TECNICO))
@@ -122,6 +156,7 @@ class AtribuicaoServiceImplTest {
             assertEquals(StatusChamado.ATENDIMENTO, chamado.getStatus());
             // A disponibilidade do técnico mudou para DESCANSO
             assertEquals(DisponibilidadeStatus.DESCANSO, tecnico.getDisponibilidade());
+
             verify(chamadoRepository).findFirstByStatusOrderByDataAtualizacaoAsc(
                     StatusChamado.AGUARDANDO_TECNICO);
         }
@@ -141,6 +176,26 @@ class AtribuicaoServiceImplTest {
             assertEquals(disponibilidadeAntes, tecnico.getDisponibilidade());
             verify(chamadoRepository).findFirstByStatusOrderByDataAtualizacaoAsc(
                     StatusChamado.AGUARDANDO_TECNICO);
+        }
+
+        @Test
+        @DisplayName("Deve ignorar técnico sem empresa aprovadora sem consultar repositório de chamados")
+        void tecnicoSemEmpresaAprovadora() {
+            // Técnico sem nenhuma empresa aprovadora
+            Tecnico tecnicoSemAprovacao = Tecnico.builder()
+                    .id(2L)
+                    .nomeCompleto("Sem Aprovação")
+                    .disponibilidade(DisponibilidadeStatus.ATIVO)
+                    .disponibilidadeAtualizadaEm(LocalDateTime.now())
+                    .empresasAprovadoras(new HashSet<>())
+                    .build();
+
+            service.processarTecnicoAtivo(tecnicoSemAprovacao);
+
+            // Não deve ter consultado o repositório de chamados
+            verify(chamadoRepository, never()).findFirstByStatusOrderByDataAtualizacaoAsc(any());
+            // O técnico permanece sem atribuição e com disponibilidade original
+            assertEquals(DisponibilidadeStatus.ATIVO, tecnicoSemAprovacao.getDisponibilidade());
         }
     }
 }

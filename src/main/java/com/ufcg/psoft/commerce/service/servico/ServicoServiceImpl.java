@@ -1,6 +1,5 @@
 package com.ufcg.psoft.commerce.service.servico;
 
-import com.ufcg.psoft.commerce.dto.ServicoInteresseRequestDTO;
 import com.ufcg.psoft.commerce.dto.ServicoPostPutRequestDTO;
 import com.ufcg.psoft.commerce.dto.ServicoResponseDTO;
 import com.ufcg.psoft.commerce.exception.EmpresaNaoExisteException;
@@ -31,10 +30,10 @@ public class ServicoServiceImpl implements ServicoService {
     private final AuthService authService;
 
     public ServicoServiceImpl(ServicoRepository servicoRepository,
-                              EmpresaRepository empresaRepository,
-                              InteresseRepository interesseRepository,
-                              ModelMapper modelMapper,
-                              AuthService authService) {
+            EmpresaRepository empresaRepository,
+            InteresseRepository interesseRepository,
+            ModelMapper modelMapper,
+            AuthService authService) {
         this.servicoRepository = servicoRepository;
         this.empresaRepository = empresaRepository;
         this.interesseRepository = interesseRepository;
@@ -44,8 +43,8 @@ public class ServicoServiceImpl implements ServicoService {
 
     @Override
     public ServicoResponseDTO criar(String cnpj,
-                                    String codigoAcesso,
-                                    ServicoPostPutRequestDTO dto) {
+            String codigoAcesso,
+            ServicoPostPutRequestDTO dto) {
 
         authService.autenticarEmpresa(cnpj, codigoAcesso);
 
@@ -89,13 +88,11 @@ public class ServicoServiceImpl implements ServicoService {
         return modelMapper.map(servico, ServicoResponseDTO.class);
     }
 
-
-
     @Override
     public ServicoResponseDTO alterar(String cnpj,
-                                      String codigoAcesso,
-                                      Long servicoId,
-                                      ServicoPostPutRequestDTO dto) {
+            String codigoAcesso,
+            Long servicoId,
+            ServicoPostPutRequestDTO dto) {
 
         authService.autenticarEmpresa(cnpj, codigoAcesso);
 
@@ -118,8 +115,8 @@ public class ServicoServiceImpl implements ServicoService {
 
     @Override
     public void remover(String cnpj,
-                        String codigoAcesso,
-                        Long servicoId) {
+            String codigoAcesso,
+            Long servicoId) {
 
         authService.autenticarEmpresa(cnpj, codigoAcesso);
 
@@ -133,7 +130,8 @@ public class ServicoServiceImpl implements ServicoService {
     }
 
     @Override
-    public ServicoResponseDTO alterarDisponibilidade(String cnpj, String codigoAcesso, Long servicoId, boolean disponivel) {
+    public ServicoResponseDTO alterarDisponibilidade(String cnpj, String codigoAcesso, Long servicoId,
+            boolean disponivel) {
         authService.autenticarEmpresa(cnpj, codigoAcesso);
         Empresa empresa = empresaRepository.findByCnpj(cnpj)
                 .orElseThrow(EmpresaNaoExisteException::new);
@@ -146,16 +144,19 @@ public class ServicoServiceImpl implements ServicoService {
         if (estavaIndisponivel && disponivel) {
             List<Interesse> interesses = interesseRepository.findByServicoAndNotificadoFalse(servico);
             interesses.sort(Comparator
-                    .comparing((Interesse i) -> i.getCliente().getPlanoAtual() == TipoPlano.PREMIUM ? 0 : 1)
+                    .comparing((Interesse i) -> i.getCliente().getPlanoAtual() == TipoPlano.PREMIUM
+                            ? 0
+                            : 1)
                     .thenComparing(Interesse::getDataInteresse));
             for (Interesse interesse : interesses) {
                 System.out.println("\n=======================================================");
-                System.out.println("NOTIFICAÇÃO PARA: " + interesse.getCliente().getNome() + 
-                                   " (Plano " + interesse.getCliente().getPlanoAtual() + ")");
-                System.out.println("MOTIVO: O serviço '" + servico.getNome() + "' voltou a ficar disponível!");
+                System.out.println("NOTIFICAÇÃO PARA: " + interesse.getCliente().getNome() +
+                        " (Plano " + interesse.getCliente().getPlanoAtual() + ")");
+                System.out.println("MOTIVO: O serviço '" + servico.getNome()
+                        + "' voltou a ficar disponível!");
                 System.out.println("=======================================================\n");
-                
-                interesse.setNotificado(true); 
+
+                interesse.setNotificado(true);
             }
             interesseRepository.saveAll(interesses);
         }

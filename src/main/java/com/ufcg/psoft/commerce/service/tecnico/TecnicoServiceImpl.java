@@ -7,13 +7,12 @@ import com.ufcg.psoft.commerce.model.DisponibilidadeStatus;
 import com.ufcg.psoft.commerce.model.Empresa;
 import com.ufcg.psoft.commerce.model.Tecnico;
 import com.ufcg.psoft.commerce.repository.TecnicoRepository;
+import com.ufcg.psoft.commerce.service.atribuicao.AtribuicaoService;
 import com.ufcg.psoft.commerce.service.auth.AuthService;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class TecnicoServiceImpl implements TecnicoService {
@@ -21,25 +20,21 @@ public class TecnicoServiceImpl implements TecnicoService {
     private final TecnicoRepository tecnicoRepository;
     private final AuthService authService;
     private final ModelMapper modelMapper;
+    private final AtribuicaoService atribuicaoService;
 
     public TecnicoServiceImpl(TecnicoRepository tecnicoRepository,
-                              AuthService authService,
-                              ModelMapper modelMapper){
+            AuthService authService,
+            ModelMapper modelMapper,
+            AtribuicaoService atribuicaoService) {
         this.tecnicoRepository = tecnicoRepository;
         this.authService = authService;
         this.modelMapper = modelMapper;
+        this.atribuicaoService = atribuicaoService;
     }
 
     @Override
     public TecnicoResponseDTO criar(TecnicoPostPutRequestDTO tecnicoDTO) {
         Tecnico tecnico = modelMapper.map(tecnicoDTO, Tecnico.class);
-
-        if (tecnico.getDisponibilidade() == null) {
-            tecnico.setDisponibilidade(DisponibilidadeStatus.DESCANSO);
-        }
-        if (tecnico.getDisponibilidadeAtualizadaEm() == null) {
-            tecnico.setDisponibilidadeAtualizadaEm(LocalDateTime.now());
-        }
 
         tecnicoRepository.save(tecnico);
         return modelMapper.map(tecnico, TecnicoResponseDTO.class);
@@ -50,7 +45,7 @@ public class TecnicoServiceImpl implements TecnicoService {
         List<Tecnico> tecnicos = tecnicoRepository.findAll();
         return tecnicos.stream()
                 .map(tecnico -> modelMapper.map(tecnico, TecnicoResponseDTO.class))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -66,8 +61,7 @@ public class TecnicoServiceImpl implements TecnicoService {
         Tecnico tecnico = tecnicoRepository.findById(id)
                 .orElseThrow(TecnicoNaoExisteException::new);
 
-        DisponibilidadeStatus disponibilidadeAtual =
-                tecnico.getDisponibilidade();
+        DisponibilidadeStatus disponibilidadeAtual = tecnico.getDisponibilidade();
 
         modelMapper.map(tecnicoDTO, tecnico);
         // impede alteração via PUT
@@ -93,6 +87,7 @@ public class TecnicoServiceImpl implements TecnicoService {
         tecnico.getEmpresasAprovadoras().add(empresa);
 
         tecnicoRepository.save(tecnico);
+        atribuicaoService.processarTecnicoAtivo(tecnico);
     }
 
     @Override
@@ -121,8 +116,9 @@ public class TecnicoServiceImpl implements TecnicoService {
 
         tecnicoRepository.save(tecnico);
 
+        atribuicaoService.processarTecnicoAtivo(tecnico);
+
         return modelMapper.map(tecnico, TecnicoResponseDTO.class);
     }
-
 
 }

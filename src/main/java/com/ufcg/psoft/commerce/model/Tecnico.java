@@ -2,15 +2,11 @@ package com.ufcg.psoft.commerce.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ufcg.psoft.commerce.exception.DisponibilidadeTecnicoInvalida;
-import jakarta.annotation.PostConstruct;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -52,35 +48,27 @@ public class Tecnico {
     @Column(nullable = false)
     private String codigoAcesso;
 
-
-
     @Builder.Default
     @ManyToMany
-    @JoinTable(
-            name = "tecnico_empresas_aprovadoras",
-            joinColumns = @JoinColumn(name = "tecnico_id"),
-            inverseJoinColumns = @JoinColumn(name = "empresa_id")
-    )
+    @JoinTable(name = "tecnico_empresas_aprovadoras", joinColumns = @JoinColumn(name = "tecnico_id"), inverseJoinColumns = @JoinColumn(name = "empresa_id"))
     private Set<Empresa> empresasAprovadoras = new HashSet<>();
 
     @Builder.Default
     @ManyToMany
-    @JoinTable(
-            name = "tecnico_empresas_reprovadoras",
-            joinColumns = @JoinColumn(name = "tecnico_id"),
-            inverseJoinColumns = @JoinColumn(name = "empresa_id")
-    )
+    @JoinTable(name = "tecnico_empresas_reprovadoras", joinColumns = @JoinColumn(name = "tecnico_id"), inverseJoinColumns = @JoinColumn(name = "empresa_id"))
     private Set<Empresa> empresasReprovadoras = new HashSet<>();
 
-//    @JsonProperty("disponibilidade")
-//    @Enumerated(EnumType.STRING)
-//    @Column(nullable = false)
-//    @Builder.Default
-//    private DisponibilidadeStatus disponibilidade = DisponibilidadeStatus.DESCANSO;
-//
-//    @JsonProperty("disponibilidadeAtualizadaEm")
-//    @Column(nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP", insertable = false, updatable = false)
-//    private LocalDateTime disponibilidadeAtualizadaEm;
+    // @JsonProperty("disponibilidade")
+    // @Enumerated(EnumType.STRING)
+    // @Column(nullable = false)
+    // @Builder.Default
+    // private DisponibilidadeStatus disponibilidade =
+    // DisponibilidadeStatus.DESCANSO;
+    //
+    // @JsonProperty("disponibilidadeAtualizadaEm")
+    // @Column(nullable = false, columnDefinition = "TIMESTAMP DEFAULT
+    // CURRENT_TIMESTAMP", insertable = false, updatable = false)
+    // private LocalDateTime disponibilidadeAtualizadaEm;
 
     @JsonProperty("disponibilidade")
     @Enumerated(EnumType.STRING)
@@ -117,5 +105,8 @@ public class Tecnico {
 
     }
 
+    public boolean temEmpresasAprovadoras() {
+        return !empresasAprovadoras.isEmpty();
+    }
 
 }

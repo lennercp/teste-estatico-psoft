@@ -2,11 +2,11 @@ package com.ufcg.psoft.commerce.service.chamado;
 
 import com.ufcg.psoft.commerce.dto.*;
 
-import com.ufcg.psoft.commerce.events.ChamadoEmAtendimentoEvent;
 import com.ufcg.psoft.commerce.exception.*;
 import com.ufcg.psoft.commerce.model.*;
 import com.ufcg.psoft.commerce.model.state.StatusChamado;
 import com.ufcg.psoft.commerce.repository.*;
+import com.ufcg.psoft.commerce.service.atribuicao.AtribuicaoService;
 import com.ufcg.psoft.commerce.service.auth.AuthService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +30,7 @@ public class ChamadoServiceImpl implements ChamadoService {
     private final PagamentoRepository pagamentoRepository;
     private final ServicoRepository servicoRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final AtribuicaoService atribuicaoService;
 
     private void autorizarAcessoChamado(Chamado chamado, AuthRequestDTO auth) {
 
@@ -68,8 +69,9 @@ public class ChamadoServiceImpl implements ChamadoService {
             throw new TipoPlanoIncorretoException();
         }
 
-        if (Boolean.FALSE.equals(servico.getAtivo()))
+        if (Boolean.FALSE.equals(servico.getAtivo())) {
             throw new ServicoDisponivelException();
+        }
 
         Chamado chamado = Chamado.builder()
                 .cliente(cliente)
@@ -91,10 +93,10 @@ public class ChamadoServiceImpl implements ChamadoService {
 
         chamado.avancarStatus();
 
-        if (chamado.getStatus() == StatusChamado.ATENDIMENTO) {
-            eventPublisher.publishEvent(
-                    new ChamadoEmAtendimentoEvent(chamado));
+        if (chamado.getStatus() == StatusChamado.AGUARDANDO_TECNICO) {
+            atribuicaoService.processarChamadoEmAndamento(chamado);
         }
+
     }
 
     private void cancelarStatus(Chamado chamado, Long clienteSolicitanteId) {
@@ -111,15 +113,16 @@ public class ChamadoServiceImpl implements ChamadoService {
         authService.autenticar(auth);
         autorizarAcessoChamado(chamado, auth);
 
-        if (dto.getEndereco() != null)
+        if (dto.getEndereco() != null) {
             chamado.setEndereco(dto.getEndereco());
+        }
 
         // Lógica de Transição de Estado (State Pattern)
         if (dto.getStatusAcao() != null) {
             String acao = dto.getStatusAcao().toUpperCase();
-            if (acao.equals("AVANCAR")) {
+            if ("AVANCAR".equals(acao)) {
                 this.avancarStatus(chamado);
-            } else if (acao.equals("CANCELAR")) {
+            } else if ("CANCELAR".equals(acao)) {
                 this.cancelarStatus(chamado, auth.getClienteId());
             }
         }
@@ -179,7 +182,7 @@ public class ChamadoServiceImpl implements ChamadoService {
                 .metodo(dto.getMetodo())
                 .confirmadoEm(LocalDateTime.now())
                 .build();
-        chamado.setPagamento((pagamento));
+        chamado.setPagamento(pagamento);
 
         pagamentoRepository.save(pagamento);
     }
