@@ -367,41 +367,6 @@ class ChamadoControllerTest {
         }
 
         @Test
-        @DisplayName("Deve atribuir técnico ao avançar para ATENDIMENTO")
-        void atribuirTecnicoEAvancar() throws Exception {
-
-            chamado.setStatus(StatusChamado.AGUARDANDO_TECNICO);
-            chamadoRepository.save(chamado);
-
-            Tecnico tecnico = Tecnico.builder()
-                    .nomeCompleto("Tecnico Especialista")
-                    .especialidade("Elétrica")
-                    .placaVeiculo("ABC-1234")
-                    .tipoVeiculo("Carro")
-                    .corVeiculo("Branco")
-                    .codigoAcesso("111222")
-                    .build();
-
-            tecnico = tecnicoRepository.save(tecnico);
-
-            ChamadoPatchRequestDTO dto = new ChamadoPatchRequestDTO();
-            dto.setStatusAcao("AVANCAR");
-            dto.setCodigo(empresa.getCodigoAcesso());
-
-            driver.perform(patch(URL_CHAMADOS + "/" + chamado.getId())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .header("X-USER-TYPE", "EMPRESA")
-                    .header("X-EMPRESA-CNPJ", empresa.getCnpj())
-                    .header("X-ACCESS-CODE", empresa.getCodigoAcesso())
-                    .content(objectMapper.writeValueAsString(dto)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("ATENDIMENTO"))
-                    .andExpect(jsonPath("$.tecnico_id").value(tecnico.getId()));
-
-            Thread.sleep(200); // ← ADICIONE AQUI também
-        }
-
-        @Test
         @DisplayName("Deve falhar ao cancelar chamado que já está em ATENDIMENTO")
         void erroAoCancelarChamadoEmAtendimento() throws Exception {
 

@@ -14,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import java.time.LocalDateTime;
 
 import org.modelmapper.ModelMapper;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -29,24 +28,15 @@ public class ChamadoServiceImpl implements ChamadoService {
     private final EmpresaRepository empresaRepository;
     private final PagamentoRepository pagamentoRepository;
     private final ServicoRepository servicoRepository;
-    private final ApplicationEventPublisher eventPublisher;
     private final AtribuicaoService atribuicaoService;
 
-    private void autorizarAcessoChamado(Chamado chamado, AuthRequestDTO auth) {
+    private void autorizarAcessoChamado(AuthRequestDTO auth) {
 
         switch (auth.getTipo()) {
-            case CLIENTE -> {
-                if (!chamado.getCliente().getId().equals(auth.getClienteId())) {
-                    throw new AcessoNegadoException();
-                }
-            }
-            case EMPRESA -> {
-                if (!chamado.getEmpresa().getCnpj().equals(auth.getEmpresaCnpj())) {
-                    throw new AcessoNegadoException();
-                }
-            }
-            case ADMIN ->
-                throw new AcessoNegadoException();
+            case CLIENTE -> authService.autenticarCliente(auth.getClienteId(), auth.getCodigoAcesso());
+            case EMPRESA -> authService.autenticarEmpresa(auth.getEmpresaCnpj(), auth.getCodigoAcesso());
+            case ADMIN -> throw new AcessoNegadoException();
+            default -> throw new IllegalArgumentException("Tipo de usuário inválido: " + auth.getTipo());
         }
     }
 
@@ -111,7 +101,7 @@ public class ChamadoServiceImpl implements ChamadoService {
     public ChamadoResponseDTO atualizar(long id, ChamadoPatchRequestDTO dto, AuthRequestDTO auth) {
         Chamado chamado = chamadoRepository.findById(id).orElseThrow(ChamadoNaoExisteException::new);
         authService.autenticar(auth);
-        autorizarAcessoChamado(chamado, auth);
+        autorizarAcessoChamado(auth);
 
         if (dto.getEndereco() != null) {
             chamado.setEndereco(dto.getEndereco());
@@ -137,7 +127,7 @@ public class ChamadoServiceImpl implements ChamadoService {
 
         authService.autenticar(auth);
 
-        autorizarAcessoChamado(chamado, auth);
+        autorizarAcessoChamado(auth);
 
         return modelMapper.map(chamado, ChamadoResponseDTO.class);
     }
@@ -149,7 +139,7 @@ public class ChamadoServiceImpl implements ChamadoService {
         Chamado chamado = chamadoRepository.findById(id)
                 .orElseThrow(ChamadoNaoExisteException::new);
         authService.autenticar(auth);
-        autorizarAcessoChamado(chamado, auth);
+        autorizarAcessoChamado(auth);
         this.cancelarStatus(chamado, auth.getClienteId());
         chamadoRepository.delete(chamado);
 
@@ -172,7 +162,7 @@ public class ChamadoServiceImpl implements ChamadoService {
             throw new AcessoNegadoException();
         }
 
-        autorizarAcessoChamado(chamado, auth);
+        autorizarAcessoChamado(auth);
         if (chamado.getPagamento() != null) {
             throw new ChamadoJaPossuiPagamentoConfirmadoException();
         }

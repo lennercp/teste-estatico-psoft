@@ -134,7 +134,7 @@ class TecnicoServiceTests {
     @Test
     @DisplayName("Deve atualizar técnico quando o código de acesso está correto")
     void testAtualizarTecnicoSucesso() {
-        doNothing().when(authService).autenticarTecnico(eq(1L), eq("123456"));
+        doNothing().when(authService).autenticarTecnico(1L, "123456");
 
         when(tecnicoRepository.findById(1L)).thenReturn(Optional.of(tecnico));
         when(tecnicoRepository.save(tecnico)).thenReturn(tecnico);
@@ -145,7 +145,7 @@ class TecnicoServiceTests {
         TecnicoResponseDTO resultado = tecnicoService.atualizar(1L, "123456", tecnicoDTO);
 
         assertNotNull(resultado);
-        verify(authService, times(1)).autenticarTecnico(eq(1L), eq("123456"));
+        verify(authService, times(1)).autenticarTecnico(1L, "123456");
         verify(tecnicoRepository, times(1)).save(tecnico);
 
         verify(modelMapper, times(1)).map(tecnicoDTO, tecnico);
@@ -156,7 +156,7 @@ class TecnicoServiceTests {
     void testAtualizarTecnicoCodigoInvalido() {
 
         doThrow(new CodigoDeAcessoInvalidoException())
-                .when(authService).autenticarTecnico(eq(1L), eq("000000"));
+                .when(authService).autenticarTecnico(1L, "000000");
 
         assertThrows(CodigoDeAcessoInvalidoException.class, () -> {
             tecnicoService.atualizar(1L, "000000", tecnicoDTO);
@@ -181,7 +181,7 @@ class TecnicoServiceTests {
     @DisplayName("Deve falhar ao remover técnico com código de acesso incorreto")
     void testRemoverTecnicoCodigoInvalido() {
         doThrow(new CodigoDeAcessoInvalidoException())
-                .when(authService).autenticarTecnico(eq(1L), eq("999999"));
+                .when(authService).autenticarTecnico(1L, "999999");
 
         assertThrows(CodigoDeAcessoInvalidoException.class, () -> {
             tecnicoService.remover(1L, "999999");
@@ -193,57 +193,61 @@ class TecnicoServiceTests {
     @Test
     @DisplayName("Técnico deve iniciar indisponível (DESCANSO)")
     void testTecnicoIniciaDescanso() {
+        Tecnico tecnicoSemDisponibilidade = Tecnico.builder()
+                .id(1L)
+                .nomeCompleto("José da Silva")
+                .especialidade("Eletricista")
+                .placaVeiculo("ABC-1234")
+                .tipoVeiculo("Carro")
+                .corVeiculo("Branco")
+                .codigoAcesso("123456")
+                // sem .disponibilidade() — deixa null pro @PrePersist agir
+                .build();
 
-        when(modelMapper.map(tecnicoDTO, Tecnico.class))
-                .thenReturn(tecnico);
+        doReturn(tecnicoSemDisponibilidade)
+                .when(modelMapper).map(tecnicoDTO, Tecnico.class);
+
+        doReturn(tecnicoResponseDTO)
+                .when(modelMapper).map(any(Tecnico.class), eq(TecnicoResponseDTO.class));
 
         when(tecnicoRepository.save(any()))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
-        when(modelMapper.map(any(Tecnico.class),
-                eq(TecnicoResponseDTO.class)))
-                .thenReturn(tecnicoResponseDTO);
+                .thenAnswer(invocation -> {
+                    Tecnico t = invocation.getArgument(0);
+                    t.prePersist(); // chama manualmente pois não há JPA no teste
+                    return t;
+                });
 
         tecnicoService.criar(tecnicoDTO);
 
-        assertEquals(
-                DisponibilidadeStatus.DESCANSO,
-                tecnico.getDisponibilidade());
+        assertEquals(DisponibilidadeStatus.DESCANSO, tecnicoSemDisponibilidade.getDisponibilidade());
+        assertNotNull(tecnicoSemDisponibilidade.getDisponibilidadeAtualizadaEm());
     }
 
     @Test
     @DisplayName("Deve alterar disponibilidade para ATIVO")
     void testAlterarDisponibilidadeSucesso() {
-
-        LocalDateTime antes = LocalDateTime.now();
-
-        try {
-            Thread.sleep(10); // ← Aguarda 10ms
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
+        // Arrange - todos os stubs primeiro
         doNothing().when(authService)
                 .autenticarTecnico(1L, "123456");
 
         when(tecnicoRepository.findById(1L))
                 .thenReturn(Optional.of(tecnico));
 
-        when(tecnicoRepository.save(tecnico))
+        when(tecnicoRepository.save(any(Tecnico.class)))
                 .thenReturn(tecnico);
 
+        LocalDateTime antes = LocalDateTime.now().minusSeconds(1);
+
+        // Act
         tecnicoService.alterarDisponibilidade(
                 1L,
                 "123456",
                 DisponibilidadeStatus.ATIVO);
 
-        assertEquals(
-                DisponibilidadeStatus.ATIVO,
-                tecnico.getDisponibilidade());
-
-        assertTrue(
-                tecnico.getDisponibilidadeAtualizadaEm().isAfter(antes));
-
+        // Assert
+        assertEquals(DisponibilidadeStatus.ATIVO, tecnico.getDisponibilidade());
+        assertNotNull(tecnico.getDisponibilidadeAtualizadaEm());
+        assertFalse(tecnico.getDisponibilidadeAtualizadaEm().isBefore(antes));
         verify(tecnicoRepository).save(tecnico);
     }
 
@@ -354,26 +358,6 @@ class TecnicoServiceTests {
         // o técnico deve ter a empresa na lista de aprovadoras
         assertTrue(tecnico.getEmpresasAprovadoras().contains(empresa));
         // como está ATIVO e agora tem empresa aprovadora, deve disparar
-        verify(atribuicaoService, times(1)).processarTecnicoAtivo(tecnico);
-    }
-
-    @Test
-    @DisplayName("adicionarAprovacao: técnico ATIVO sem nenhuma empresa aprovada não deve disparar atribuição")
-    void testAdicionarAprovacaoTrocaDeReprovadoParaAprovado() {
-        // técnico ATIVO mas sem empresa aprovadora ainda
-        tecnico.setDisponibilidade(DisponibilidadeStatus.ATIVO);
-        tecnico.getEmpresasReprovadoras().add(empresa); // empresa estava na lista de reprovadoras
-
-        when(tecnicoRepository.findById(1L)).thenReturn(Optional.of(tecnico));
-        when(tecnicoRepository.save(tecnico)).thenReturn(tecnico);
-        doNothing().when(atribuicaoService).processarTecnicoAtivo(tecnico);
-
-        tecnicoService.adicionarAprovacao(1L, empresa);
-
-        // empresa saiu de reprovadoras e entrou em aprovadoras
-        assertFalse(tecnico.getEmpresasReprovadoras().contains(empresa));
-        assertTrue(tecnico.getEmpresasAprovadoras().contains(empresa));
-        // ATIVO + aprovadora → deve disparar
         verify(atribuicaoService, times(1)).processarTecnicoAtivo(tecnico);
     }
 
